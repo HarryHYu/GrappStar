@@ -19,7 +19,8 @@ def _RotY(a):
 def dart_meshes(J):
     out = {}
     for p in J["parts"]:
-        z = np.load(os.path.join(ROOT, "kedge", "out34", p["name"] + ".npz"))
+        import dart_motion as DM
+        z = np.load(os.path.join(DM.OUT, p["name"] + ".npz"))
         v = np.asarray(z["v"], float) / 1000.0
         if len(v) > 4000:
             v = v[:: max(1, len(v) // 4000)]
@@ -90,12 +91,12 @@ def run(ctx, say):
     for nm in ("drill_leg_L", "drill_leg_R"):
         piv = np.array(PP[nm]["pos"]) / 1000.0
         zs = []
-        for f in (ev["pods_deploy_start"], ev["anchored"], len(frames) - 1):
+        for f in (ev["pods_deploy_start"], ctx["cut_f"], len(frames) - 1):
             p, R = frames[f]["dart"][1], frames[f]["dart"][2]
             deg = ctx["pod"][f]
             tip = p + R @ (piv + _RotY(math.radians(-deg)) @ tip_local)
             zs.append(round(float(tip[2]) * 1000, 1))
-        out[nm] = dict(tip_z_mm_deploy_start_anchored_end=zs, into_ground=bool(zs[1] < -20 and zs[2] < -20))
+        out[nm] = dict(tip_z_mm_deploy_start_after_cut_end=zs, into_ground=bool(zs[1] < -20 and zs[2] < -20))
     res["drills"] = out
     say("check drills:", out)
     # ---- dart meshes vs the ground after landing (augers / motors / shafts excluded once drilling)
@@ -143,6 +144,45 @@ def run(ctx, say):
                 base_min = (z, nm, f)
     res["base_moving_parts_min_z_mm"] = dict(z=round(base_min[0] * 1000, 2), part=base_min[1], frame=base_min[2])
     say("check base moving parts min z:", res["base_moving_parts_min_z_mm"])
+    # ---- free rope never inside base geometry (after the launch; the nodes touching the lip roller excluded)
+    import trimesh
+    mdir2 = os.path.join(ROOT, "base", "out", "base", "meshes")
+    tms = {}
+    worst = []
+    fl0 = ev["muzzle_exit"]
+    sel = list(range(fl0, len(frames), 5))
+    for f in sel:
+        fr = frames[f]
+        X = fr.get("rope_x")
+        if X is None or len(X) < 3:
+            continue
+        ex = fr["fixed_w"][-1]
+        pts = X[np.linalg.norm(X - ex, axis=1) > 0.004]
+        if not len(pts):
+            continue
+        for nm, track in tr.items():
+            M = track[f]
+            if nm not in tms:
+                fp = os.path.join(mdir2, nm + ".npz")
+                if not os.path.exists(fp):
+                    tms[nm] = None
+                    continue
+                z = np.load(fp)
+                tm = trimesh.Trimesh(np.asarray(z["v"], float) / 1000.0, z["f"], process=False)
+                tms[nm] = tm if tm.is_watertight else None
+            tm = tms[nm]
+            if tm is None:
+                continue
+            loc = (pts - M[:3, 3]) @ M[:3, :3]                  # into the part frame
+            lo, hi = tm.bounds
+            m = ((loc > lo) & (loc < hi)).all(1)
+            if not m.any():
+                continue
+            inside = tm.contains(loc[m])
+            if inside.any():
+                worst.append((f, nm, int(inside.sum())))
+    res["free_rope_inside_base"] = dict(frames_checked=len(sel), hits=worst[:20], n_hits=len(worst), ok=not worst)
+    say("check free rope inside base parts:", res["free_rope_inside_base"])
     # ---- line above ground, dart in flight clear of the base
     LF = ctx["LF"]
     res["line_min_z_mm"] = round(float(LF[:, :, 2].min()) * 1000, 2)

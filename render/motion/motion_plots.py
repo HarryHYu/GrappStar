@@ -35,19 +35,16 @@ def run(ctx, out):
     ev = ctx["ev"]
     gear = ctx["gear"]
     frames = ctx["frames"]
-    key = {"aim_start", "cock_start", "fire", "impact", "righted", "anchored", "reel_taut", "tension_hold"}
+    key = {"aim_start", "cock_start", "fire", "impact", "righted", "cut", "reel_taut", "tension_hold"}
 
-    # 1) film clock: slow motion
-    fig, axs = plt.subplots(2, 1, figsize=(8, 5), sharex=True)
-    tg, fo = ctx["tgrid"], ctx["film_of_td"]
-    axs[0].plot(fo, [ctx["rate"](t) for t in tg], color=SER[0])
-    axs[0].set_ylabel("film s per real s")
-    axs[0].set_title("Slow motion baked into film time (launch 20x, flight 3x, impact 6x)")
-    axs[1].plot(fo, tg, color=SER[0])
-    axs[1].set_ylabel("dart clock (real s)")
-    axs[1].set_xlabel("film time (s)")
-    for a in axs:
-        _events(a, ev, fps, key)
+    # 1) film clock: real time 1:1 with one cut
+    fig, ax = plt.subplots(figsize=(8, 3.2))
+    rt = np.array([ctx["t_of_frame"](f) for f in range(len(tf))])
+    ax.plot(tf, rt, color=SER[0])
+    ax.set_ylabel("real time (s)")
+    ax.set_xlabel("film time (s)")
+    ax.set_title("Real time 1:1; one hard cut (cam:A -> cam:B) skips the long drilling and wrap")
+    _events(ax, ev, fps, key | {"cut"})
     fig.tight_layout()
     fig.savefig(os.path.join(out, "01_film_clock.png"), dpi=110)
     plt.close(fig)
@@ -78,14 +75,14 @@ def run(ctx, out):
 
     # 3) shot detail vs real time
     fl = ctx["fl"]
-    td = np.array([fr["td"] for fr in frames])
+    td = np.array([fr["t"] for fr in frames])
     T0 = ctx["T_FIRE"]
     m = (td > T0 - 0.01) & (td < T0 + 0.6)
     fig, axs = plt.subplots(1, 2, figsize=(11, 3.6))
     axs[0].plot((td[m] - T0) * 1000, gear[m, 1], color=SER[0], marker="o", ms=2.5, lw=1.2)
     axs[0].set_xlabel("ms after full cock (real)")
     axs[0].set_ylabel("carriage travel (mm)")
-    axs[0].set_title("The shot, one dot per film frame (20x)")
+    axs[0].set_title("The shot, one dot per film frame (real time)")
     axs[1].plot((td[m] - T0) * 1000, gear[m, 2], color=SER[1], marker="o", ms=2.5, lw=1.2)
     axs[1].set_xlabel("ms after full cock (real)")
     axs[1].set_ylabel("big gear (deg)")
@@ -171,7 +168,7 @@ def run(ctx, out):
     # 8) line snapshots (side view)
     LF = ctx["LF"]
     evd = dict((nm, f) for f, nm in ev)
-    snaps = [("muzzle_exit", 0), ("impact", 0), ("righted", 0), ("anchored", 0), ("reel_taut", 0), ("end", 0)]
+    snaps = [("muzzle_exit", 0), ("impact", 0), ("righted", 0), ("cut", 0), ("reel_taut", 0), ("end", 0)]
     fig, ax = plt.subplots(figsize=(11, 3.4))
     for k, (nm, _) in enumerate(snaps):
         f = evd.get(nm)
@@ -220,7 +217,7 @@ def scene(ctx, out, frames_sel=None):
     J = ctx["J34"]
     dm = MC.dart_meshes(J)
     evd = dict((nm, f) for f, nm in ctx["ev"])
-    sel = frames_sel or ["aim_start", "cocked", "carriage_home", "muzzle_exit", "anchored", "end"]
+    sel = frames_sel or ["aim_start", "cocked", "carriage_home", "muzzle_exit", "cut", "end"]
     fig, axs = plt.subplots(2, len(sel), figsize=(4.2 * len(sel), 7.5))
     for k, nm in enumerate(sel):
         f = evd[nm]
@@ -239,7 +236,7 @@ def scene(ctx, out, frames_sel=None):
             ax.scatter(D[:, i], D[:, j], s=0.15, color=SER[1], alpha=0.6, linewidths=0)
             ax.plot(Lp[:, i], Lp[:, j], color=SER[7], lw=0.9)
             ax.set_aspect("equal")
-            if nm in ("anchored", "end"):
+            if nm in ("cut", "end"):
                 c = fr["dart"][1]
                 ax.set_xlim(c[0] - 0.22, c[0] + 0.06)
                 ax.set_ylim((c[j] - 0.1, c[j] + 0.1) if row else (-0.06, 0.08))

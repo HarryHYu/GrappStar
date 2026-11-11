@@ -27,12 +27,8 @@ import base_motion as BM  # noqa: E402
 import dart_motion as DM  # noqa: E402
 import landing as LD  # noqa: E402
 
-SIM_JOB = {"cfg": {"axle": "rigid", "tie": True, "legLen": 3},
-           "D": {"hull": {"mass": 0.1905, "cgX": 83.3},
-                 "pod": {"mass": 0.026, "pivotX": 132, "pivotY": 9.5, "stopDeg": 46.75, "lat": 31.15},
-                 "leg": {"mass": 0.0055, "len": 113, "padW": 37, "pad": 3.5, "hingeX": 33, "hingeY": 14.5, "stopDeg": 178}},
-           "LAYOUTS": {"tail": {"pivotX": 132}}, "cgUp": -2.6, "soil": "loam"}      # = v34_tail_tie_worm.json T_rigid_tie
-CGX = 0.0833
+SIM_JOB = DM.sim_job()          # the dart build's righting sim configuration (dart_motion.OUT; out34 = v34 tail tie job)
+CGX = SIM_JOB["D"]["hull"]["cgX"] / 1000.0
 LEG_MOVES = ("legFlip", "legRock", "podsThenFlip")
 
 

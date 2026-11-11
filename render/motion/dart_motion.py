@@ -23,6 +23,17 @@ KEDGE = os.path.join(ROOT, "kedge")
 if KEDGE not in sys.path:
     sys.path.insert(0, KEDGE)
 
+def kedge_out():
+    """the dart build every module uses: $KEDGE_OUT, else kedge/out35 once kedge/out35/READY exists, else kedge/out34"""
+    env = os.environ.get("KEDGE_OUT")
+    if env:
+        return env if os.path.isabs(env) else os.path.join(ROOT, env)
+    o35 = os.path.join(KEDGE, "out35")
+    return o35 if os.path.exists(os.path.join(o35, "READY")) else os.path.join(KEDGE, "out34")
+
+
+OUT = kedge_out()
+
 C_SIM = np.array([[1.0, 0, 0], [0, 0, -1.0], [0, 1.0, 0]])           # sim world (x, y up, z right) -> world (X, Y, Z up)
 M_D2S = np.array([[-1.0, 0, 0], [0, 0, 1.0], [0, 1.0, 0]])            # dart frame axes -> sim body axes (proper rotation)
 
@@ -108,7 +119,7 @@ def decompose(R):
 
 # ------------------------------------------------------------------ parts.json joints
 def dart_parts():
-    J = json.load(open(os.path.join(KEDGE, "out34", "parts.json")))
+    J = json.load(open(os.path.join(OUT, "parts.json")))
     return J
 
 
@@ -121,8 +132,8 @@ def _flight_inputs():
     if not _FI:
         import mass34
         import flight34 as F
-        rows = mass34.load(os.path.join(KEDGE, "out34"))[0]
-        _FI["v"] = (F, mass34.cases(rows)["putty, bought x1.0"], F.Air(os.path.join(KEDGE, "out34")))
+        rows = mass34.load(OUT)[0]
+        _FI["v"] = (F, mass34.cases(rows)["putty, bought x1.0"], F.Air(OUT))
     return _FI["v"]
 
 
@@ -244,7 +255,7 @@ def dart_cloud(J=None, step=6):
               "righting_leg", "coupler_L", "coupler_R", "pod_cap_L", "pod_cap_R"):
         if n not in PP:
             continue
-        v = np.asarray(np.load(os.path.join(KEDGE, "out34", n + ".npz"))["v"], float)[::step] / 1000.0
+        v = np.asarray(np.load(os.path.join(OUT, n + ".npz"))["v"], float)[::step] / 1000.0
         q = PP[n]
         off = np.zeros(3)
         while True:
@@ -310,3 +321,91 @@ class SimMap:
 
     def point(self, p_sim):
         return self.Rw @ np.asarray(p_sim, float) + self.off
+
+
+# ------------------------------------------------------------------ sim configuration from the dart build
+V34_JOB = {"cfg": {"axle": "rigid", "tie": True, "legLen": 3},
+           "D": {"hull": {"mass": 0.1905, "cgX": 83.3},
+                 "pod": {"mass": 0.026, "pivotX": 132, "pivotY": 9.5, "stopDeg": 46.75, "lat": 31.15},
+                 "leg": {"mass": 0.0055, "len": 113, "padW": 37, "pad": 3.5, "hingeX": 33, "hingeY": 14.5, "stopDeg": 178}},
+           "LAYOUTS": {"tail": {"pivotX": 132}}, "cgUp": -2.6, "soil": "loam", "layout": "tail"}   # v34_tail_tie_worm.json T_rigid_tie
+
+
+def sim_job(out=None):
+    """righting sim configuration for a dart build: out34 = the validated v34 tail tie job; any other build (v35) from
+    its parts.json (pod pivot, flank offset, fold direction, deploy stop, length; leg hinge and swing; tail tie) and
+    its mass34 masses (hull = total less pods and leg)"""
+    out = out or OUT
+    if os.path.basename(os.path.normpath(out)) == "out34":
+        return json.loads(json.dumps(V34_JOB))
+    import mass34
+    J = json.load(open(os.path.join(out, "parts.json")))
+    P, PP = J["P"], {p["name"]: p for p in J["parts"]}
+    rows = mass34.load(out)[0]
+    c = mass34.cases(rows)["putty, bought x1.0"]
+
+    def group_mass(root):
+        names = {root} | {n for n, p in PP.items() if p.get("parent") == root}
+        names |= {n for n, p in PP.items() if p.get("parent") in names}
+        return sum(r["m"] if "m" in r else r.get("mass_g", 0) / 1000 for r in rows if r.get("name") in names) if rows else None
+    pl = PP["drill_leg_L"]
+    piv = np.array(pl["pos"], float)
+    au = np.asarray(np.load(os.path.join(out, "drill_leg_L_auger.npz"))["v"], float)
+    tip = au[np.argmax(np.linalg.norm(au, axis=1))]
+    fold = 1 if tip[0] < 0 else -1                                   # folded tip toward the nose (+1, v34) or the tail (-1)
+    lg = PP["righting_leg"]
+    m_pod = group_mass("drill_leg_L") or 0.026
+    m_leg = group_mass("righting_leg") or 0.0055
+    M = c["mass_g"] / 1000
+    layout = "tail" if fold == 1 else "front"
+    job = {"cfg": {"axle": "rigid", "tie": True, "legLen": 3, "tieX": float(P["TIE"]["holes"][0][0]),
+                   "tieY": float(P["TIE"]["holes"][0][2])},
+           "D": {"hull": {"mass": round(M - 2 * m_pod - m_leg, 4), "cgX": round(float(c["cg_mm"][0]), 2)},
+                 "pod": {"mass": round(m_pod, 4), "pivotX": float(piv[0]), "pivotY": float(piv[2]),
+                         "stopDeg": float(P["DEPLOY_DEG"]), "lat": abs(float(piv[1])), "len": round(float(np.linalg.norm(tip)), 2)},
+                 "leg": {"mass": round(m_leg, 4), "hingeX": float(lg["pos"][0]), "hingeY": float(lg["pos"][2]),
+                         "stopDeg": float(P.get("LEG_DEG", 178.0)), "len": 113, "padW": 37, "pad": 3.5}},
+           "LAYOUTS": {layout: {"pivotX": float(piv[0]), "fold": fold}}, "cgUp": round(float(c["cg_mm"][2]), 2) - 3.0,
+           "soil": "loam", "layout": layout}
+    return job
+
+
+def joint_map(out=None):
+    """sim joint angle -> parts.json joint deg, and the auger spin axes (local, toward the tip) with their drill-in
+    signs (from the flight helix: right-hand turns + about the tip direction)"""
+    out = out or OUT
+    J = json.load(open(os.path.join(out, "parts.json")))
+    PP = {p["name"]: p for p in J["parts"]}
+    job = sim_job(out)
+    f = job["LAYOUTS"][job["layout"]].get("fold", 1)
+    ax_pod = M_D2S.T @ np.array([0.0, 0.0, -f])
+    ax_leg = M_D2S.T @ np.array([0.0, 0.0, -1.0])
+    k_pod = float(np.sign(ax_pod[1])) * PP["drill_leg_L"].get("sgn", 1)
+    k_leg = float(np.sign(ax_leg[1])) * PP["righting_leg"].get("sgn", 1)
+    aug = {}
+    for side in ("L", "R"):
+        v = np.asarray(np.load(os.path.join(out, f"drill_leg_{side}_auger.npz"))["v"], float)
+        c = v.mean(0)
+        u, s_, vt = np.linalg.svd(v - c, full_matrices=False)
+        a = vt[0] if vt[0] @ c > 0 else -vt[0]
+        e1 = np.cross(a, [0.0, 0.0, 1.0]) if abs(a[2]) < 0.9 else np.cross(a, [0.0, 1.0, 0.0])
+        e1 /= np.linalg.norm(e1)
+        e2 = np.cross(a, e1)
+        s = v @ a
+        r = np.linalg.norm(v - np.outer(s, a), axis=1)
+        th = np.arctan2(v @ e2, v @ e1)
+        lo, hi = s.min() + 0.45 * np.ptp(s), s.min() + 0.75 * np.ptp(s)       # flight zone (v34 D_HOLD 45..79 of 101)
+        band = (s > lo) & (s < hi)
+        m = band & (r > 0.85 * r[band].max())
+        bins = np.linspace(lo, hi, 40)
+        pts = []
+        for b0, b1 in zip(bins[:-1], bins[1:]):
+            k = m & (s >= b0) & (s < b1)
+            if k.sum() > 3:
+                pts.append((0.5 * (b0 + b1), np.angle(np.mean(np.exp(1j * th[k])))))
+        pts = np.array(pts)
+        slope = np.polyfit(pts[:, 0], np.unwrap(pts[:, 1]), 1)[0]
+        a = np.where(np.abs(a) < 0.02, 0.0, a)
+        a = a / np.linalg.norm(a)
+        aug[side] = dict(axis=[round(float(x), 6) for x in a], drill_in_sign=1.0 if slope > 0 else -1.0)
+    return dict(k_pod=k_pod, k_leg=k_leg, augers=aug)

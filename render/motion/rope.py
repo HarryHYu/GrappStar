@@ -63,6 +63,8 @@ def project(x, r, iters=6, bilateral=False):
 
 
 class Rope:
+    ground_fn = None          # optional surface height z(x, y) (vectorised) under the line: the base deck, the board
+
     def __init__(self, knot, exit_pt):
         knot, exit_pt = np.asarray(knot, float), np.asarray(exit_pt, float)
         self.x = np.array([knot, exit_pt])
@@ -107,8 +109,9 @@ class Rope:
         sp = np.linalg.norm(v, axis=1, keepdims=True)
         a = G - K_DRAG * sp * v
         xn = x + v * dt + a * dt * dt
+        gz = GROUND_Z if self.ground_fn is None else self.ground_fn(xn[:, 0], xn[:, 1]) + GROUND_Z
         if ground:
-            on = xn[:, 2] <= GROUND_Z + 1e-4
+            on = xn[:, 2] <= gz + 1e-4
             # ground friction: kill most of the tangential velocity of nodes resting on the ground
             if on.any():
                 vt = (xn[on] - x[on])
@@ -121,7 +124,8 @@ class Rope:
         for _ in range(3):
             project(xn, r, iters=iters, bilateral=tight)
             if ground:
-                np.maximum(xn[:, 2], GROUND_Z, out=xn[:, 2])
+                gz = GROUND_Z if self.ground_fn is None else self.ground_fn(xn[:, 0], xn[:, 1]) + GROUND_Z
+                np.maximum(xn[:, 2], gz, out=xn[:, 2])
             xn[0] = knot
             xn[-1] = exit_pt
         self.xp = x

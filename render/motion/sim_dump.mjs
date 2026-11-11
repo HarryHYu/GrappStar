@@ -95,7 +95,7 @@ const COLS = ['t', 'phase', 'px', 'py', 'pz', 'qw', 'qx', 'qy', 'qz', 'vx', 'vy'
 function make(seed, init) {
   // with an init state the preset landing only builds the bodies; applyInit then moves them to the given state
   const Ld = init ? { rollDeg: 0, gammaDeg: 45, yawDeg: 0, spin: V() } : core.landingFor(JOB.pose || 'random', seed);
-  const opts = { pose: JOB.pose || 'random', seed, soil: JOB.soil || 'loam', dist: 3, cgUp: JOB.cgUp ?? -3.3, mass: 'brief', layout: 'tail', init };
+  const opts = { pose: JOB.pose || 'random', seed, soil: JOB.soil || 'loam', dist: 3, cgUp: JOB.cgUp ?? -3.3, mass: 'brief', layout: JOB.layout || 'tail', init };
   return { s: new Rec({ ...opts, ...Ld }), Ld };
 }
 

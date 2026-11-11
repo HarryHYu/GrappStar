@@ -223,7 +223,7 @@ class BaseKin:
         return S
 
     # ------------------------------------------------------------------ the shot
-    def fire_state(self, S_cocked, tau, trace, w_rate=270.0, w_rate_loaded=225.0, stop=None):
+    def fire_state(self, S_cocked, tau, trace, w_rate=270.0, w_rate_loaded=225.0, stop=None, wprof=None):
         """State during the shot, tau (s) after the wiper passes full cock (425 fwd). The relieved last tooth lets go at
         wiper 429.6 fwd (gear -281.25, release table); the carriage then follows the launcher physics trace
         (base/physics launcher.py, t, x) home, overshoots into the PLA stop flexure and settles; the wiper keeps turning
@@ -232,13 +232,15 @@ class BaseKin:
         w_rel = wc0 + (self.g0 - self.g_rel) * ratio            # 429.6 fwd
         t_rel = (w_rel - (wc0 + 425.0)) / w_rate_loaded
         w_end = wc0 + 553.8
+        if wprof is not None:                                   # real motor profile (RealSchedule): (t, w) from full cock
+            t_rel = float(np.interp(w_rel, wprof[1], wprof[0]))
         S = dict(S_cocked)
         S["phase"] = "fire"
         S["fired"] = 1
         S["cock"] = 1.0
         info = dict(t_rel=t_rel)
         if tau < t_rel:
-            w = wc0 + 425.0 + w_rate_loaded * tau
+            w = wc0 + 425.0 + w_rate_loaded * tau if wprof is None else float(np.interp(tau, wprof[0], wprof[1]))
             g = self.g0 - (w - wc0) / ratio
             xs, ys = -np.asarray(self.rt["theta"]), np.asarray(self.rt["travel"])
             k = int(np.clip(np.searchsorted(xs, -g), 1, len(xs) - 1))
@@ -248,7 +250,7 @@ class BaseKin:
             info.update(stage="release", travel=travel, dart_u=0.0)
             return S, info
         ts = tau - t_rel
-        w = min(w_end, w_rel + w_rate * ts)
+        w = min(w_end, w_rel + w_rate * ts) if wprof is None else float(np.interp(tau, wprof[0], wprof[1]))
         g = self.g_rel - (w - w_rel) * (360.0 + self.g_rel) / (w_end - w_rel)      # -281.25 -> -360 over the reset
         tt, xx = trace[:, 0], trace[:, 1] * 1000.0
         T_st = float(tt[np.argmax(xx >= xx.max() - 1e-6)])
@@ -259,7 +261,7 @@ class BaseKin:
         else:
             travel = carriage_stop(ts - T_st, stop or getattr(self, "stop_model", None))
         S.update(wiper_deg=w, sleeve_deg=w, launch_gear_deg=g, launch_travel=travel)
-        if ts >= T_st and w >= w_end:
+        if ts >= T_st and w >= w_end - 1e-3:
             S["phase"] = "flight"
             S.pop("launch_gear_deg")
             S.pop("launch_travel")
@@ -338,3 +340,223 @@ def to_world_m(M_mm):
 def pts_world_m(p_mm):
     p = np.asarray(p_mm, float) * 0.001
     return p @ BASE_TO_WORLD[:3, :3].T + BASE_TO_WORLD[:3, 3]
+
+
+# ====================================================================== real-time motor moves (v2: 1:1 time)
+WIPER_N0 = 270.0          # deg/s, wiper no-load speed (params WIPER n0_rpm 45)
+WIPER_TS = 15.0           # N m, wiper stall torque (params WIPER stall_nm)
+WIPER_TAU = 0.06          # s, spin-up time constant (motor + gearbox + base train inertia)
+WIPER_BRAKE = 4000.0      # deg/s^2, stop on the BTS7960 brake (270 deg/s stops in about 70 ms, 9 deg)
+DRUM_RATE = 8.1           # deg/s, selector drum on its N20 (params DRUM n20 drum_deg_per_s)
+DRUM_RAMP = 0.08          # s
+AIM_LOAD = 1.2            # N m at the wiper running backward in LAUNCH (aim train; the firmware trips at 3 A = 1.36 N m)
+FRICTION = 0.3            # N m, light running load of the trains
+
+
+def motor_move(w0, w1, load=lambda w: FRICTION, duty=1.0, dt=1e-4):
+    """Wiper from w0 to w1 (deg, from rest to rest): DC motor (no-load speed x duty less n0 / Ts per N m of load),
+    first-order spin-up, braked stop. Returns arrays (t from 0, w)."""
+    d = 1.0 if w1 >= w0 else -1.0
+    w, om, t = float(w0), 0.0, 0.0
+    T, W = [0.0], [w]
+    while True:
+        rem = (w1 - w) * d
+        if rem <= 1e-4:
+            break
+        oss = max(5.0, duty * WIPER_N0 - WIPER_N0 / WIPER_TS * load(w))
+        om += (oss - om) * dt / WIPER_TAU
+        om = min(om, (2.0 * WIPER_BRAKE * rem) ** 0.5)
+        w += d * min(om * dt, rem)
+        t += dt
+        T.append(t)
+        W.append(w)
+    return np.array(T), np.array(W)
+
+
+def drum_move(d0, d1):
+    """selector drum d0 -> d1 at the N20's 8.1 deg/s with short ramps: (t, d)"""
+    L = abs(d1 - d0)
+    v = DRUM_RATE
+    tr = DRUM_RAMP
+    tc = max(0.0, L / v - tr)
+    tt = np.linspace(0.0, tc + 2 * tr, max(3, int((tc + 2 * tr) / 0.01) + 1))
+    s = np.where(tt < tr, 0.5 * v / tr * tt ** 2,
+                 np.where(tt < tr + tc, 0.5 * v * tr + v * (tt - tr),
+                          L - 0.5 * v / tr * np.maximum(0.0, tc + 2 * tr - tt) ** 2))
+    s = np.clip(s * (L / max(s[-1], 1e-9)), 0, L)
+    return tt, d0 + np.sign(d1 - d0) * s
+
+
+class Channel:
+    """piecewise value over time: hold between moves, moves as (t, value) arrays"""
+
+    def __init__(self, v0):
+        self.T = [0.0]
+        self.V = [float(v0)]
+
+    def hold_until(self, t):
+        if t > self.T[-1]:
+            self.T.append(t)
+            self.V.append(self.V[-1])
+
+    def move(self, t0, arr_t, arr_v):
+        self.hold_until(t0)
+        self.T += list(t0 + np.asarray(arr_t[1:]))
+        self.V += list(np.asarray(arr_v[1:]))
+        return self.T[-1]
+
+    def at(self, t):
+        return float(np.interp(t, self.T, self.V))
+
+    @property
+    def end(self):
+        return self.T[-1]
+
+
+class RealSchedule:
+    """The base's real-time sequence (firmware C1 order, BASE_SPEC 10.1) with motor-limited moves:
+    idle, aim (wiper backward), arm pause, cock (wiper forward against the springs), hold, the shot (fire_state),
+    then after LANDED: rail low over the top of the aim cycle (D45), unload jog, drum to NEUTRAL, the 7-turn wrap, the
+    WRAPPED park; after ANCHORED: tidy (take-up, wiper forward in NEUTRAL), REEL fly-in (drum to 347 with a wiper creep),
+    tow (capstan wind until tight, the worm then holds)."""
+
+    def __init__(self, B, t_idle=3.0, t_arm=0.5, t_hold=0.8):
+        self.B = B
+        W = B.W34
+        self.wiper = Channel(0.0)
+        self.drum = Channel(0.0)
+        self.reel = Channel(0.0)
+        self.events = {}
+        t = t_idle
+        self.events["aim_start"] = t
+        tt, ww = motor_move(0.0, -W, lambda w: AIM_LOAD)
+        t = self.wiper.move(t, tt, ww)
+        self.events["aimed"] = t
+        t += t_arm
+        self.events["cock_start"] = t
+        self.wc0 = -W
+        n = B.n
+        rb = B.g["r_big"] / 1000.0
+        stroke = B.stroke
+
+        def cock_load(w):
+            x = min(max((w - self.wc0) / 425.0, 0.0), 1.0) * stroke
+            F = 2.0 * (7.0 + 0.125 * (n["preload"] + x))
+            return F * rb / B.ratio / 0.85 + FRICTION
+        self.cock_load = cock_load
+        tt, ww = motor_move(-W, -W + 425.0, cock_load)
+        t = self.wiper.move(t, tt, ww)
+        self.events["cocked"] = t
+        t += t_hold
+        self.t_fire0 = t
+        # the shot: wiper restarts from full cock, lets go at 429.6, carries the gear through its gap to 553.8
+        w_rel = self.wc0 + (B.g0 - B.g_rel) * B.ratio
+        tt, ww = motor_move(self.wc0 + 425.0, self.wc0 + 553.8,
+                            lambda w: cock_load(w) if w < w_rel else FRICTION)
+        self.fire_t, self.fire_w = tt, ww
+        self.w_rel = w_rel
+        self.t_rel = float(np.interp(w_rel, ww, tt))
+        t_end = self.wiper.move(t, tt, ww)
+        self.t_fire_end = t_end
+        self.events["fire"] = t + self.t_rel
+
+    def post_landing(self, t_landed, t_anchored, tidy_until_taut):
+        """moves after the dart lands (t_landed = Jetson LANDED verdict) and anchors; tidy_until_taut(t_start) -> the
+        take-up duration (from the rope); returns the schedule end (tow start)"""
+        t = self.post_landing_head(t_landed, t_anchored)
+        return self.post_landing_tail(t, tidy_until_taut(t))
+
+    def post_landing_head(self, t_landed, t_anchored):
+        """rail low, unload jog, drum to NEUTRAL, the wrap, the park, then wait for ANCHORED: returns the tidy start"""
+        B = self.B
+        t = max(t_landed, self.t_fire_end)
+        self.events["base_rail_low_start"] = t
+        w = self.wiper.V[-1]
+        w_low = -3046.2
+        tt, ww = motor_move(w, w_low, lambda x: AIM_LOAD)
+        t = self.wiper.move(t, tt, ww)
+        self.sleeve_freeze = t                                   # the collar leaves LAUNCH after this
+        tt, ww = motor_move(w_low, w_low - 6.0, lambda x: AIM_LOAD)      # unload jog inside the dog window
+        t = self.wiper.move(t + 0.3, tt, ww)
+        self.events["base_drum_to_neutral"] = t + 0.3
+        tt, dd = drum_move(0.0, 41.0)
+        t = self.drum.move(t + 0.3, tt, dd)
+        self.events["base_wrap_start"] = t + 0.2
+        tt, dd = drum_move(41.0, 302.0)
+        t = self.drum.move(t + 0.2, tt, dd)
+        self.events["base_wrap_done"] = t
+        tt, dd = drum_move(302.0, 314.0)
+        t = self.drum.move(t + 0.2, tt, dd)
+        self.events["base_wrapped_park"] = t
+        t = max(t + 0.5, t_anchored + 0.5)
+        self.events["tidy_start"] = t
+        return t
+
+    def takeup_speed(self):
+        """tidy take-up line speed (m/s): wiper at duty 0.6 against the FIRM slip clutch, spool 2.5 x the wiper"""
+        rate = 0.6 * WIPER_N0 - WIPER_N0 / WIPER_TS * (5.0 * 0.0274 * 2.5 + FRICTION)
+        return math.radians(rate) * 2.5 * 0.0274
+
+    def post_landing_tail(self, t, dur):
+        """tidy for dur s, REEL fly-in, then the tow starts: returns the tow start"""
+        # tidy: wiper forward in NEUTRAL at duty 0.6 against the FIRM slip clutch (5 N at the line, 2.5 x overdrive)
+        w0 = self.wiper.V[-1]
+        rate = 0.6 * WIPER_N0 - WIPER_N0 / WIPER_TS * (5.0 * 0.0274 * 2.5 + FRICTION)
+        tt, ww = motor_move(w0, w0 + rate * dur, lambda x: 5.0 * 0.0274 * 2.5 + FRICTION, duty=0.6)
+        t = self.wiper.move(t, tt, ww)
+        self.events["tidy_done"] = t
+        # REEL fly-in: drum 314 -> 347 while the wiper creeps forward 6 deg (dog bite)
+        t += 0.4
+        self.events["reel_engage"] = t
+        tt, dd = drum_move(314.0, 347.0)
+        te = self.drum.move(t, tt, dd)
+        w0 = self.wiper.V[-1]
+        tt, ww = motor_move(w0, w0 + 6.0, lambda x: FRICTION, duty=0.1)
+        self.wiper.move(te - tt[-1], tt, ww)
+        t = te + 0.4
+        self.events["tow_start"] = t
+        self.t_tow = t
+        return t
+
+    def tow(self, t0, take_deg_fn, t1):
+        """capstan (REEL gear, = wiper in REEL) follows the take-in the tension needs, from t0 to t1"""
+        ts = np.arange(t0, t1 + 1e-9, 0.01)
+        w0, r0 = self.wiper.V[-1], self.reel.V[-1]
+        self.wiper.hold_until(t0)
+        self.reel.hold_until(t0)
+        for t in ts[1:]:
+            d = take_deg_fn(t)
+            self.wiper.T.append(t)
+            self.wiper.V.append(w0 + d)
+            self.reel.T.append(t)
+            self.reel.V.append(r0 + d)
+
+    def state(self, t, aim_pitch, S_cocked):
+        """base master state at real time t"""
+        B = self.B
+        if self.t_fire0 <= t < self.t_fire_end:
+            return None                                          # the shot: make_motion uses fire_state
+        w = self.wiper.at(t)
+        d = self.drum.at(t)
+        sleeve = w if t <= getattr(self, "sleeve_freeze", 1e9) else self.wiper.at(self.sleeve_freeze)
+        S = dict(t=t, wiper_deg=w, sleeve_deg=sleeve, aim_deg=aim_pitch, drum_deg=d, reel_deg=self.reel.at(t),
+                 line_out_m=0.0, dart_flight=0.0, dart_return=0.0, anchored=0, wraps=0.0)
+        ev = self.events
+        if t < ev["aim_start"]:
+            S.update(phase="load", cock=0.0, fired=0)
+        elif t < ev["cock_start"]:
+            S.update(phase="aim", cock=0.0, fired=0)
+        elif t < self.t_fire0:
+            c = min(max((w - self.wc0) / 425.0, 0.0), 1.0)
+            S.update(phase="cock" if c < 1.0 - 1e-9 else "cocked", cock=c, fired=0)
+        else:
+            S.update(phase="flight" if t < ev.get("base_rail_low_start", 1e9) else "after", cock=0.0, fired=1)
+        if d < 8.0:
+            S.update(mode="LAUNCH", drum_pos="LAUNCH")
+        elif d < 50.0:
+            S.update(mode="NEUTRAL", drum_pos="NEUTRAL")
+        elif d < 340.0:
+            S.update(mode="NEUTRAL", drum_pos="BETWEEN" if d < 310 else "WRAPPED")
+        else:
+            S.update(mode="REEL", drum_pos="REEL")
+        return S

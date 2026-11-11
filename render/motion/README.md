@@ -1,63 +1,76 @@
-# render/motion: motion data for the GrappStar animation
+# render/motion: motion data for the GrappStar animation (v2: real time)
 
-`motion.json` (about 5 MB, 1724 frames at 30 fps, 57.4 s) is written by
+`motion.json` (about 5 MB, 1432 frames at 30 fps, 47.7 s) is written by
 
     cd render/motion
     ../../kedge/.venv/bin/python make_motion.py [--rerun-sim] --node-path <dir with @dimforge/rapier3d-compat 0.14.0>
 
-about 90 s on 4 cores. It also writes `checks.json` (sanity checks) and `plots/*.png` (key curves, a posed scene check).
-The sim trace `sim/sim_pick.json` is committed; it is rerun (byte for byte) whenever the flight's end state changes.
-`search_landing.py` is the search that picked the launch inputs (results in `search/`).
+about 3 min on 4 cores. It also writes `checks.json` (sanity checks) and `plots/*.png` (key curves, posed scene check).
+The dart build comes from `dart_motion.OUT`: `$KEDGE_OUT`, else `kedge/out35` once `kedge/out35/READY` exists, else
+`kedge/out34`. The sim trace `sim/sim_pick_<build>.json` is committed and rerun whenever the flight's end state
+changes. `search_landing.py` searches the launch inputs for a build (results in `search/`), `PICKS` in make_motion.py
+holds the pick per build.
 
-## Segments and where each comes from
+## Film clock: real time 1:1, one cut
 
-| Segment | Source | Notes |
+Frame f shows real time f / 30 s up to the `cut` event (frame 732, 24.4 s: cam:A, static wide), then real time
+58.0 + (f - 732) / 30 s (cam:B, static, side-on to the line). The cut skips 33.6 s: the drilling to the anchors
+(anchored at 30.1 s real) and most of the base's 32 s wrap. `cut`, `real_time_of_frame`, `events[].real_time` and
+`events_hidden_by_cut` are in motion.json. Around the shot and the impact some keys sit on quarter frames (320.25 ...)
+for motion blur; key them at those fractional frames. Keys are sparse: interpolate LINEAR, never across the cut.
+
+| real s | what | source |
 |---|---|---|
-| Base station, every moving part | `base_motion.py`: the base's own joints, `kin()` and `line_path()` from `base/cad/parts` (drum, frame, launch, reel, sensors = the full D50 build), posed with `base/out/base/asm.json` (names, joint, place); joints checked equal to asm.json | Timeline in `tools.timeline` custom format with `TL._state_custom` (the base's eased state machine), numbers from `base/spec/params.py` TIMELINE, aim at the picked rail pitch |
-| Aim, cock | same | crank-rocker lifts the rail 6 -> 33.99 deg (wiper 1067.5 deg backward); wiper +425 deg draws the carriage back 240.9 mm, springs to 430 mm pin distance |
-| The shot | `BaseKin.fire_state`: release table (gear -278.2 -> -281.25 on the tooth plateau), carriage from the `base/physics` launcher.py chain-spring trace (58.6 ms), then `carriage_stop_model`: carriage + spring mass on the PLA stop flexure (15 kN/m: 18.8 mm, about 285 N for the 2.7 J), rebound 9.2 mm, a second small hit, settled 53 ms after HOME; springs and their pin end points follow; gear carried on through its gap to -360 | dart rides the carriage, then slides 204 mm on the cradle at the muzzle speed and leaves over the lip roller; the tip-off attitude offset builds up over that slide |
-| Free flight | `dart_motion.Flight3D`: `kedge/flight34.py` strip aero of both planes on the air-relative velocity (pitch: top-view widths, yaw: side-view widths), axial drag, gravity, 0.25 N payout drag on the tail tie, steady cross-wind; no roll mechanism in the model, so no roll | 0.842 s, nose first (angle of attack at most 12.4 deg), 24 mm lateral drift, impact nose at X 4.71 |
-| Landing, bounce, righting, anchoring, tow | `sim_dump.mjs`: `kedge/sim_righting/index.html` simCore + `v34_check/run34_shared.mjs` SimV34 cut at run time (unchanged), T_rigid_tie config (rigid axle, tail tie), loam, STARTED FROM THE FLIGHT'S END STATE (pose, velocity, angular velocity; every body moved rigidly, the reel at the base's lip roller) when the dart's lowest point is 20 mm above the ground | no blend: handover position 0.0008 mm, rotation 0.0001 deg, angular velocity equal. Its own bounce leaves it inverted (tilt 174 deg); the leg alone rights it (legFlip, righted 6.9 s after contact, no reel tug); both drills in (41 / 44 mm); held 55 N in the sim; the film shows the tow ramp to 15 N, hold, step to 20 N |
-| Tether | `rope.py`: rope of 1 mm Dyneema (gravity, quadratic air drag, ground friction, fast-projection inextensibility) from the base exit to the tail knot, on the base path `reel.line_spans` + `launch.line_path` (spool, capstan wraps, eyelet, rail-rear pulley, rail, pusher hole, lip roller) | storage spool: pulled by the line when tight, coasting against the 0.25 N LIGHT drag when slack (it stays tight in flight; the line bows behind the sweep with air drag); overrun after impact capped at 0.6 m (base physics 0.2 m at 0.75 N); take-up pulls it in; tight at the sim tension in the tow; line enters and leaves at the base end |
+| 0-3 | idle | |
+| 3.0-7.4 | aim: wiper 1067.5 deg backward, rail 6 -> 33.99 deg | wiper as a DC motor: 45 rpm no load, 15 N m stall, 1.2 N m aim train load, 60 ms spin-up, braked stop |
+| 7.9-9.8 | cock: wiper +425 deg against the springs, carriage back 241 mm | same motor against the spring torque through the big gear |
+| 10.6-10.7 | the shot: release 60 ms after the wiper restarts, 58.6 ms stroke, carriage 18.8 mm into the stop flexure, 9.2 mm rebound, settled 53 ms; springs follow | release table, base/physics launcher.py trace, carriage_stop_model |
+| 10.7-11.6 | flight 0.84 s, impact nose X 4.71 | Flight3D: kedge/flight34.py strip aero in both planes, tail tie drag, cross-wind |
+| 11.6- | bounce, inverted, leg flip (13.0), righted 18.6, pods deploy, drills from 20.4 | righting sim (kedge/sim_righting SimV34, v34 tail tie, loam) started FROM the flight's end state, no blend |
+| 12.4-22.8 | base: rail low over the top of the aim cycle (34 -> 47 -> 6 deg, D45) | wiper backward at the aim load |
+| 23.4- | unload jog, drum to NEUTRAL (5 s), then the wrap 41 -> 302 deg (32 s, cup 7 turns) | drum N20 8.1 deg/s |
+| cut | | |
+| 58.0-62.8 | last wrap turns, park at 314 | |
+| 63.3 | tidy (take-up, wiper duty 0.6 against the FIRM clutch) until tight; line rises off the grass | the wrap took the slack, the line is already near tight at the LIGHT 0.25 N |
+| 65.3 | REEL fly-in (drum 314 -> 347, 4.1 s, wiper creep) | |
+| 69.8-76.3 | tow: capstan takes in 7 mm while the tension ramps to 20 N (sim tow) | line stretch EA 30 kN + the dart's give in the soil |
+| 76.3-81.3 | tension holds (worm), end | |
+
+Events (frame): aim 90, cock 237, fire 320, muzzle exit 323, impact 348, rail low 372, leg flip 389, righted 556,
+drills 611, cut 732, wrap done 822, park 875, tidy 890, reel taut 892, REEL 949, tow 1086, tension hold 1281, end 1431.
+
+## Tether
+
+`rope.py`: 1 mm Dyneema rope (gravity, quadratic air drag, ground and base-deck contact, fast-projection
+inextensibility) from the base exit to the tail knot, on the base path (`reel.line_spans` + `launch.line_path`).
+After the launch the line runs along the cradle to the funnel mouth and wraps over the muzzle lip roller whenever it
+leaves below the pusher ray to the roller top (the base's own rule). The total line out is conserved: it changes only
+by the spool (pulled out against the LIGHT drag, coasting 0.6 m after impact) and the take-up; the capstan wraps draw
+the slack from the dart side. Checked: no free rope point inside any base part, none below the ground.
 
 ## Launch inputs (search_landing.py)
 
-Searched uniformly: rail 33..35 deg (snapped to pitches the aim train reaches), muzzle 6.7..6.9 m/s, tip-off pitch rate
--1..1 rad/s and pitch offset -5..5 deg, yaw rate -1..1 rad/s and yaw offset -5..5 deg (flight34's disturbance range),
-cross-wind -1.5..1.5 m/s, flat loam. 240 runs; qualifying = inverted or on a flank after its own tumble, the leg used,
-righted, both drills in, 55 N held, no reel tug. Picked (seed 8, run 28): rail 33.987 commanded (33.9863 reached),
-muzzle 6.783 m/s, tip-off -0.908 rad/s (nose down), +0.16 deg, yaw rate +0.368 rad/s, yaw offset +3.18 deg, cross-wind
-0.645 m/s toward +Y, slope 0.
+Rail 33..35 deg (reachable pitches), muzzle 6.7..6.9 m/s, tip-off pitch rate -1..1 rad/s and offset -5..5 deg, yaw
+rate -1..1 rad/s and offset -5..5 deg, cross-wind -1.5..1.5 m/s, flat loam; qualifying = inverted or on a flank after
+its own tumble, the leg used, righted, both drills in, 55 N held, no reel tug. out34 pick (seed 8, run 28): rail 33.987
+commanded (33.9863 reached), muzzle 6.783 m/s, tip-off -0.908 rad/s nose down and +0.16 deg, yaw rate +0.368 rad/s and
++3.18 deg, cross-wind 0.645 m/s toward +Y, slope 0.
 
 ## motion.json beyond SPEC
 
-- `objects["base:<asm part>"]`: world 4x4 as loc + quat per key (= `base_to_world @ JW(joint) @ place`, mm -> m), for
-  every part that moves or sits off its place pose. Frame 0 is the load state = models.py rest pose.
-  `base:launch_line_*` are the base's own tether stand-ins (hide them; `line` is the tether).
+- `objects["base:<asm part>"]`: world loc + quat per key (= `base_to_world @ JW(joint) @ place`, mm -> m); frame 0 is
+  the load state = models.py rest pose. `base:launch_line_*` are the base's tether stand-ins (hide them).
 - `objects["dart:root"]`: the dart frame (nose tip origin, +x to the tail, +z up).
-- `joints`: `dart:righting_leg`, `dart:drill_leg_L/R` (axis (0,-1,0) at their parts.json pos, deg = parts.json joint
-  deg; couplers, deploy shaft, caps and motors follow the deploy angle), `dart:drill_leg_L/R_auger` (parent the pod,
-  axis (-1,0,0) local through the pivot; L +deg, R -deg, both drill in, 45 rpm while drilling, 7.3 turns).
-- `line`: 48 points per key, 12 on the base path (spool -> exit) + 36 free rope (exit -> knot). While the cup has
-  laid the capstan turns, the main line skips them with a chord inside the drum and `line_wraps` gives the turns (64 points).
-- `springs["launch_spring_l/r"]`: anchor pin and carriage pin centres per key (coil ends 12 mm inside each pin), for
-  models.py `set_spring_pins(pin_c=carriage_pin, pin_a=anchor_pin)`.
-- `events`, `dart.launch_inputs`, `dart.handover`, `sources`, `film_time_note`. Keys are sparse: interpolate LINEAR.
-
-## Film clock (baked in)
-
-Real time to the shot; 20x for the release, stroke, carriage stop and slide; 3x in flight; 6x at the impact and bounce;
-real time from 1.2 s after impact through the righting and the drilling. After landing the base's drum sequence is
-compressed to fit inside the dart's righting and anchoring: rail low over the top of the aim cycle (D45) 1.35x, drum to
-NEUTRAL 2.69x, the 7-turn wrap 4.5x, the park 2.97x. Reel segment: tidy 1.33x, REEL engage 2.6x, tow 2x, 2.5 s hold.
-Events (frame): aim 120, cock 285, fire 513, carriage home 548, muzzle exit 566, impact 715, leg flip 872, righted
-1039, drills 1094, anchored 1386, reel taut 1435, tow 1558, tension hold 1648, end 1723.
+- `joints`: `dart:righting_leg`, `dart:drill_leg_L/R` (axis (0, sgn, 0) at their parts.json pos, deg = parts.json
+  joint deg; the rest of each pod follows), `dart:drill_leg_L/R_auger` (parent the pod, axis = the auger's own axis
+  toward its tip, deg already carries the drill-in sign).
+- `line` (48 points: 12 base path + 36 free rope), `line_wraps` (capstan turns), `springs` (pin centres per key).
+- `dart.launch_inputs`, `dart.handover` (0.0008 mm, 0.0001 deg), `dart.sim_job`, `sources`.
 
 ## Approximations
 
-- Carriage trace uses the base physics default dart (279 g); the free dart leaves at the picked muzzle speed.
-- The stop flexure's restitution is assumed 0.25 (printed PLA); stiffness from the base's 19 mm / 285 N.
-- Spool overrun after impact capped at 0.6 m (the base physics 0.2 m at 0.75 N, scaled to the LIGHT 0.25 N).
-- The base's take-in during the tow is line stretch (EA 30 kN) plus the dart's give in the soil from the sim (7 mm).
-- The line rests on z = 2 mm: drape it on the real terrain if the paddock between the base and the landing patch is not flat.
-- Sim contact is soft with simple colliders: the real meshes sink up to 3.1 mm into the soil in the bounce, 0.2 mm at rest.
+- Wiper motor numbers are params assumptions (WIPER measured: False); aim train load 1.2 N m assumed.
+- Carriage trace uses the base physics default dart (279 g); the stop flexure restitution is assumed 0.25.
+- Spool overrun after impact capped at 0.6 m (base physics 0.2 m at 0.75 N, scaled to the LIGHT 0.25 N).
+- The dart is still (its sim state held) between the anchors and the tow; the tow shows the sim's tension ramp.
+- Sim contact is soft with simple colliders: the real meshes sink up to 3.3 mm into the soil in the bounce, 0.2 mm at rest.

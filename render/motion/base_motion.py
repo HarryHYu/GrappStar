@@ -44,7 +44,7 @@ W34 = None      # wiper degrees backward from LOW to the 34 deg aim (set by Base
 
 
 class BaseKin:
-    def __init__(self):
+    def __init__(self, aim_deg=34.0):
         P = load_params()
         self.P = P
         mods = {n: importlib.import_module(f"cad.parts.{n}") for n in SUBS}
@@ -78,7 +78,8 @@ class BaseKin:
         self.rt = LA.release_table(P)
         self.stroke = float(self.n["stroke"])
         global W34
-        d34 = float(AIM.psi_of_pitch(P, 34.0)[1])                   # crank deg from LOW on the rising stroke
+        self.aim_deg = float(aim_deg)
+        d34 = float(AIM.psi_of_pitch(P, self.aim_deg)[1])          # crank deg from LOW on the rising stroke
         W34 = self._tune_aim(d34 * K.wiper_per_crank(P))
         self.W34 = W34
         self.build_timeline()
@@ -98,15 +99,32 @@ class BaseKin:
     def pitch(self, S):
         return float(self.A.values(S)["launch_rail"])
 
+    def snap_pitch(self, deg):
+        """the rail pitch the aim train actually reaches nearest deg (kin locks the crank to the sun teeth) and its wiper"""
+        keep = (self.aim_deg, getattr(self, "aim_end_pitch", None))
+        self.aim_deg = float(deg)
+        d = float(self.AIM.psi_of_pitch(self.P, self.aim_deg)[1])
+        w = self._tune_aim(d * self.K.wiper_per_crank(self.P))
+        p = self.aim_end_pitch
+        self.aim_deg, self.aim_end_pitch = keep
+        return p, w
+
     def _tune_aim(self, w0):
-        """wiper backward degrees for exactly 34.0 deg: kin() locks the crank to the sun teeth, so search near w0"""
+        """wiper backward degrees for the aim pitch: kin() locks the crank to the sun teeth, so search near w0"""
         best = None
+        tgt = self.aim_deg
+
+        def pitch_of(w):
+            return self.pitch(dict(wiper_deg=-w, sleeve_deg=-w, aim_deg=tgt, cock=0.0, fired=0, phase="aim",
+                                   drum_deg=0.0, reel_deg=0.0, line_out_m=0.0, wraps=0.0, mode="LAUNCH"))
         for dw in np.arange(-8.0, 8.01, 0.25):
-            w = w0 + dw
-            p = self.pitch(dict(wiper_deg=-w, sleeve_deg=-w, aim_deg=34.0, cock=0.0, fired=0, phase="aim",
-                                drum_deg=0.0, reel_deg=0.0, line_out_m=0.0, wraps=0.0, mode="LAUNCH"))
-            if best is None or abs(p - 34.0) < abs(best[1] - 34.0):
-                best = (w, p)
+            p = pitch_of(w0 + dw)
+            if best is None or abs(p - tgt) < abs(best[1] - tgt):
+                best = (w0 + dw, p)
+        for dw in np.arange(-0.25, 0.2501, 0.01):
+            p = pitch_of(best[0] + dw)
+            if abs(p - tgt) < abs(best[1] - tgt):
+                best = (best[0] + dw, p)
         self.aim_end_pitch = best[1]
         return best[0]
 
@@ -166,7 +184,7 @@ class BaseKin:
             ("load", 4.0, "idle, dart seated, drum LAUNCH, rail low",
              dict(wiper_deg=0.0, sleeve_deg=0.0, reel_deg=0.0, drum_deg=0.0, aim_deg=6.02, cock=0.0, fired=0, wraps=0,
                   line_out_m=0.0, dart_flight=0.0, dart_return=0.0, anchored=0, mode="LAUNCH", drum_pos="LAUNCH")),
-            ("aim", 5.0, "wiper backward: crank-rocker lifts the rail to 34 deg", dict(wiper_deg=-W, sleeve_deg=-W, aim_deg=34.0)),
+            ("aim", 5.0, "wiper backward: crank-rocker lifts the rail to the aim pitch", dict(wiper_deg=-W, sleeve_deg=-W, aim_deg=self.aim_end_pitch)),
             ("arm", 0.5, "aimed, worm holds", dict()),
             ("cock", 5.0, "wiper forward 425 deg: big gear draws the carriage back 241 mm",
              dict(wiper_deg=wc0 + 425.0, sleeve_deg=wc0 + 425.0, cock=1.0)),
@@ -239,7 +257,7 @@ class BaseKin:
             x = float(np.interp(ts, tt, xx))
             travel = rel0 * (1.0 - x / xx.max())
         else:
-            travel = carriage_stop(ts - T_st, stop)
+            travel = carriage_stop(ts - T_st, stop or getattr(self, "stop_model", None))
         S.update(wiper_deg=w, sleeve_deg=w, launch_gear_deg=g, launch_travel=travel)
         if ts >= T_st and w >= w_end:
             S["phase"] = "flight"
@@ -250,19 +268,64 @@ class BaseKin:
         return S, info
 
 
+def carriage_stop_model(v_c, e=0.25, k=15000.0, m=0.0805 + 2 * 0.053 / 3, mu=0.3):
+    """Carriage after it reaches HOME at v_c (m/s): 1-DOF model of the carriage (80.5 g + a third of the two 53 g
+    springs) on the PLA stop flexure (linear, 15 kN/m: about 19 mm and 285 N for the 2.7 J, base physics launch /
+    recoil, BASE_SPEC D26) with damping on its rebound only (hysteresis), tuned to a restitution e (assumed 0.25: printed
+    PLA flexure), the two springs pulling it home (7 N + 0.125 N/mm each over the 23.8 mm preload) and rail friction
+    (mu 0.3 on its weight). Returns dict(t, u) with u = carriage travel in mm (negative = past HOME into the flexure)."""
+
+    u0 = 2.0 * (7.0 + 0.125 * 23.8) / k                   # the springs hold the carriage this far into the flexure at HOME (u 0)
+
+    def sim(c, record=False):
+        dt = 1e-5
+        u, v = 0.0, -v_c
+        T, U = [0.0], [0.0]
+        t, v_out, settle = 0.0, None, None
+        while t < 0.4:
+            Fs = -2.0 * (7.0 + 0.125 * (23.8 + u * 1000.0))     # springs pull toward HOME (-u)
+            Ff = 0.0
+            if u < u0:
+                Ff = max(0.0, k * (u0 - u) - (c * v if v > 0 else 0.0))   # the flexure pushes only; damped on the way out
+            Fr = -math.copysign(mu * m * 9.81, v) if abs(v) > 1e-4 else 0.0
+            u_prev = u
+            v += (Fs + Ff + Fr) / m * dt
+            u += v * dt
+            t += dt
+            if u_prev < u0 <= u and v > 0 and v_out is None:
+                v_out = v
+            if settle is None and v_out is not None and abs(u) < 2e-5 and abs(v) < 0.01:
+                settle = t
+            if record and t - T[-1] >= 2e-4:
+                T.append(t)
+                U.append(u * 1000.0)
+            if settle is not None and t > settle + 0.003:
+                U[-1] = 0.0
+                break
+            if v_out is None and u < 0 and v > 0 and t > 0.05:
+                break
+        return v_out or 0.0, T, U, settle or t
+    lo, hi = 0.0, 200.0
+    for _ in range(40):
+        c = 0.5 * (lo + hi)
+        vo, *_ = sim(c)
+        if vo > e * v_c:
+            lo = c
+        else:
+            hi = c
+    vo, T, U, settle = sim(0.5 * (lo + hi), True)
+    U = np.array(U)
+    return dict(t=np.array(T), u=U, umin=float(U.min()), umax=float(U.max()), t_settle=float(settle), e=e, v_out=vo,
+                c=0.5 * (lo + hi))
+
+
 def carriage_stop(t, stop=None):
-    """Carriage travel (mm, negative = past HOME into the stop flexure) t s after it reaches HOME: the PLA flexure
-    (about 19 mm, peak about 285 N, base physics launch / recoil) takes it to about -17 mm in a half sine of 7 ms, a small
-    rebound of 3 mm (the two springs, 10 N preload each, pull it back) and settles."""
-    st = stop or dict(a1=-17.0, t1=0.007, a2=3.0, t2=0.012)
-    if t < 0:
+    """carriage travel (mm) t s after it reaches HOME, from carriage_stop_model (0 before and after)"""
+    if t < 0 or stop is None:
         return 0.0
-    if t < st["t1"]:
-        return st["a1"] * math.sin(math.pi * t / st["t1"])
-    t -= st["t1"]
-    if t < st["t2"]:
-        return st["a2"] * math.sin(math.pi * t / st["t2"])
-    return 0.0
+    if t > stop["t"][-1]:
+        return 0.0
+    return float(np.interp(t, stop["t"], stop["u"]))
 
 
 def to_world_m(M_mm):

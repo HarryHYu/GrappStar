@@ -67,9 +67,12 @@ def run(ctx, say):
                         ok=bool(abs(roll + 1.0) < 0.03 and abs(mesh + B.ratio) < 0.03))
     say("check gears:", res["gears"])
     # ---- flight: nose first (angle of attack under 45 deg all the way)
-    fl = ctx["fl"]
-    aoa = np.degrees(fl[:, 3] - np.arctan2(fl[:, 5], fl[:, 4]))
-    res["flight"] = dict(aoa_max_deg=round(float(np.abs(aoa).max()), 1), aoa_at_handover_deg=round(float(aoa[-1]), 1),
+    fl = ctx["fl"]                       # Flight3D rows: t, x, y, z, th, psi, vx, vy, vz, q, r
+    e1 = np.stack([np.cos(fl[:, 4]) * np.cos(fl[:, 5]), np.cos(fl[:, 4]) * np.sin(fl[:, 5]), np.sin(fl[:, 4])], 1)
+    vv = fl[:, 6:9]
+    aoa = np.degrees(np.arccos(np.clip((e1 * vv).sum(1) / np.linalg.norm(vv, axis=1), -1, 1)))
+    res["flight"] = dict(aoa_max_deg=round(float(np.abs(aoa).max()), 1), total_angle_of_attack_at_handover_deg=round(float(aoa[-1]), 1),
+                         lateral_drift_mm=round(float(fl[-1, 2] - fl[0, 2]) * 1000, 1), heading_end_deg=round(float(np.degrees(fl[-1, 5])), 2),
                          nose_first=bool(np.abs(aoa).max() < 45), time_s=round(float(fl[-1, 0]), 3))
     say("check flight:", res["flight"])
     # ---- impact / rest positions
@@ -144,5 +147,5 @@ def run(ctx, say):
     LF = ctx["LF"]
     res["line_min_z_mm"] = round(float(LF[:, :, 2].min()) * 1000, 2)
     say("check line min z mm:", res["line_min_z_mm"])
-    res["handover_mismatch"] = ctx["mism"]
+    res["handover"] = ctx["mism"]
     return res

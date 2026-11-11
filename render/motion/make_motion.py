@@ -4,7 +4,8 @@
 
 Parts (README.md): base kinematics (base_motion.py: the base's own joints, kin() and line paths, with its timeline),
 the shot (base/physics launcher.py trace), free flight (dart_motion.Flight: kedge/flight34.py physics), landing /
-righting / anchoring (kedge/sim_righting through sim_dump.mjs, seed SEED, v34 tail tie), the tether rope (rope.py), and
+righting / anchoring (kedge/sim_righting through sim_dump.mjs, started from the flight's end state, v34 tail tie; launch
+inputs PICK from search_landing.py), the tether rope (rope.py), and
 the film clock (slow motion baked in). Writes motion.json, plots/*.png and checks.json next to this file.
 """
 from __future__ import annotations
@@ -25,21 +26,24 @@ sys.path.insert(0, HERE)
 
 import base_motion as BM  # noqa: E402
 import dart_motion as DM  # noqa: E402
+import landing as LD  # noqa: E402
 from rope import Rope  # noqa: E402
 
 FPS = 30
-SEED = 1021                       # loam, lands inverted, legFlip then podRoll, both drills in, holds 55 N (v34 tail tie)
+# launch inputs picked by search_landing.py (seed 8, run 28; rechecked with the reachable rail pitch): plausible rail pitch,
+# muzzle speed, cradle tip-off, yaw disturbance and a light cross-wind; its own bounce ends inverted, the leg alone rights
+# it (no reel tug), both drills go in and it holds 55 N
+PICK = dict(rail_deg=33.987, v0=6.783, q0=-0.908, dth=0.16, r0=0.368, dpsi=3.18, wind_y=0.645, slope_deg=0.0)
 SIM_JOB = {"cfg": {"axle": "rigid", "tie": True, "legLen": 3},
            "D": {"hull": {"mass": 0.1905, "cgX": 83.3},
                  "pod": {"mass": 0.026, "pivotX": 132, "pivotY": 9.5, "stopDeg": 46.75, "lat": 31.15},
                  "leg": {"mass": 0.0055, "len": 113, "padW": 37, "pad": 3.5, "hingeX": 33, "hingeY": 14.5, "stopDeg": 178}},
            "LAYOUTS": {"tail": {"pivotX": 132}}, "cgUp": -2.6, "soil": "loam"}      # = v34_tail_tie_worm.json T_rigid_tie
-V0 = 6.8                          # m/s at the muzzle (flight34, sim)
-TIP_OFF = -0.4                    # rad/s, cradle tip-off, nose down (flight34 case 'tip-off 0.4 rad/s nose down')
 DRILL_RPM = 45.0                  # drill motor under load on 2S (100 rpm 12 V listing)
 EA_LINE = 30000.0                 # N, 1 mm Dyneema braid (stretch under the tow)
-T_FLIGHT, T_TIDY, T_TOW_MIN = 0.4, 5.0, 5.0     # N: line tension in flight (payout drag + spool inertia), FIRM take-up, tow floor
+T_FLIGHT, T_TIDY, T_TOW_MIN = 0.3, 5.0, 5.0     # N: line tension in flight (base physics: 0.25 N payout drag, 0.37 N peak at the dart), FIRM take-up, tow floor
 W_LINE = 0.006                    # N/m, 1 mm Dyneema braid (0.6 g/m)
+W_DRAG_FLIGHT = 0.010             # N/m, air drag on the line sweeping sideways at about 3-4 m/s while the dart arcs down (Cd 1.2, d 1 mm)
 SPOOL_DECEL = 0.25 / 0.035        # m/s2: LIGHT 0.25 N on the spool's effective line mass (I / r^2, base physics payout)
 OVERRUN_M = 0.6                   # spool overrun after landing: base physics payout 0.20 m at 0.75 N brake, x 3 at LIGHT 0.25 N
 V_OVERRUN = math.sqrt(2 * SPOOL_DECEL * OVERRUN_M)
@@ -134,9 +138,10 @@ def dp_keep(p, k):
     return sorted(keep)
 
 
-def line_slack(d, T):
-    """extra length of a line of span d hanging at tension T over the straight chord (shallow catenary: 8 s^2 / 3 d)"""
-    s = W_LINE * d * d / (8.0 * max(T, 1e-3))
+def line_slack(d, T, w=W_LINE):
+    """extra length of a line of span d under a transverse load w (N/m) at tension T over the straight chord (shallow
+    catenary: sag s = w d^2 / 8 T, extra 8 s^2 / 3 d)"""
+    s = w * d * d / (8.0 * max(T, 1e-3))
     return 8.0 * s * s / (3.0 * max(d, 1e-6))
 
 
@@ -157,40 +162,29 @@ def build(args):
         print(s, flush=True)
         log.append(s)
 
-    # ---------------- sim trace
-    sim_path = os.path.join(HERE, "sim", f"sim_{SEED}.json")
-    os.makedirs(os.path.dirname(sim_path), exist_ok=True)
-    if args.rerun_sim or not os.path.exists(sim_path):
-        job = dict(SIM_JOB, out=sim_path, seed=SEED, dump=True, dtFine=0.002, tFine=3.0, dtCoarse=0.01)
-        env = dict(os.environ)
-        if args.node_path:
-            env["NODE_PATH"] = args.node_path
-        subprocess.run(["node", os.path.join(HERE, "sim_dump.mjs"), json.dumps(job)], check=True, env=env, cwd=HERE)
-    sim = DM.SimTrace(sim_path)
-    sm = sim.summary
-    say("sim seed", SEED, "righted", sm["righted"], "rightT", round(sm["rightT"], 2), "anchored", sm["anchored"], "held", sm["held"],
-        "moves", [m["move"] for m in sm["moves"]])
-    ph_sim = dict((p["p"], p["t"]) for p in sm["phases"])
-    t_land_sim = ph_sim["landing"]
-    t_anch_sim = ph_sim["tow"]                         # both drills at their stops, anchors set
-    t_settle_end = t_anch_sim + 1.0                    # the sim's tow starts with 1 s on the light drag
-
     # ---------------- base
     say("loading base kinematics ...")
-    B = BM.BaseKin()
-    say("aim: wiper", round(B.W34, 2), "deg backward from LOW -> pitch", round(B.aim_end_pitch, 3))
+    B = BM.BaseKin(aim_deg=PICK["rail_deg"])
+    say("aim: wiper", round(B.W34, 2), "deg backward from LOW -> pitch", round(B.aim_end_pitch, 4), "(asked", PICK["rail_deg"], ")")
     sys.path.insert(0, os.path.join(ROOT, "kedge"))
     import dart_model as dmod
-    _, lres, ltr, _ = dmod.launch_trace(34.0)          # base/physics launcher.py chain-spring model, base default dart 279 g
-    trace = ltr[:, :2]
+    _, lres, ltr, _ = dmod.launch_trace(round(B.aim_end_pitch, 2))   # base/physics launcher.py chain-spring model (279 g dart)
+    trace = ltr[:, :2].copy()
+    v_carr = float(np.max(ltr[:, 2]))
+    i_end = int(np.argmax(trace[:, 1] >= trace[:, 1].max() - 1e-9))     # the trace clamps at its 1 ms step: put the
+    trace[i_end, 0] = trace[i_end - 1, 0] + (trace[i_end, 1] - trace[i_end - 1, 1]) / ltr[i_end - 1, 2]   # stop where it happens
+    trace = trace[: i_end + 1]
     S_cocked = B.state(B.t0["flight"] - 1e-6)
     _, info0 = B.fire_state(S_cocked, 0.0, trace)
     t_rel = info0["t_rel"]
     Sx, info1 = B.fire_state(S_cocked, t_rel + 0.001, trace)
     T_st = info1["T_stroke"]
     tau_home = t_rel + T_st
-    say("shot: release", round(t_rel * 1000, 1), "ms after full cock; stroke", round(T_st * 1000, 1), "ms (launcher.py, v",
-        round(float(lres["v_muzzle"]), 2), "m/s)")
+    say("shot: release", round(t_rel * 1000, 1), "ms after full cock; stroke", round(T_st * 1000, 1), "ms (launcher.py, carriage",
+        round(v_carr, 2), "m/s)")
+    stop = BM.carriage_stop_model(v_carr)
+    B.stop_model = stop
+    say("carriage stop: flexure", round(-stop["umin"], 1), "mm, rebound", round(stop["umax"], 1), "mm, settled", round(stop["t_settle"] * 1000), "ms")
 
     place_dart = [np.array(p["place"], float) for p in B.asm["parts"] if p["name"] == "launch_dart"][0]
 
@@ -198,71 +192,77 @@ def build(args):
         JW = B.joint_world(S)
         return JW["launch_dart_rot"] @ place_dart        # dart frame (mm) in the base frame
 
-    # dart at HOME on the carriage at 34 deg, and the rail direction
-    S_home = dict(S_cocked, phase="fire", fired=1, launch_travel=0.0, launch_gear_deg=B.g_rel)
-    Wd_home = BM.to_world_m(dart_on_carriage(S_home))
-    pitch34 = B.pitch(S_home)
-    Rr = BM.BASE_TO_WORLD[:3, :3] @ B.rail_W(pitch34)[:3, :3]
-    u_dir = Rr @ np.array([1.0, 0.0, 0.0])
-    CGX = sim.cgX                                      # body reference point on the axis (sim CG station), dart frame x
-    n = B.n
-    u_cg_home = n["u_tail_home"] + 152.0 - CGX * 1000.0
-    u_sep = B.MZ.U_R + n["u_c_home"]                   # last support: the lip roller at the cradle front (carriage at HOME)
-    slide = (u_sep - u_cg_home) / 1000.0
+    # ---------------- launch and free flight from the picked inputs (search_landing.py), to 20 mm above the ground
+    CGX = SIM_JOB["D"]["hull"]["cgX"] / 1000.0           # sim body origin: hull axis at the CG station
+    geom = LD.LaunchGeom(B, S_cocked, CGX)
+    inp = dict(PICK, rail_deg=round(float(B.aim_end_pitch), 6))
+    cloud = DM.dart_cloud()
+    case = LD.Case(geom, inp, cloud)
+    V0 = inp["v0"]
+    Wd_home = case.Wh
+    u_dir = case.u
+    R_rail = case.R_rail
+    slide = case.slide
     tau_sep = tau_home + slide / V0
-    p_sep_root = Wd_home[:3, 3] + u_dir * slide
-    R_rail = Wd_home[:3, :3]
-    cg_sep = p_sep_root + R_rail @ np.array([CGX, 0.0, 0.0])
-    say("separation: slide", round(slide * 1000, 1), "mm on the cradle, CG at", np.round(cg_sep, 4), "tau", round(tau_sep * 1000, 1), "ms")
-
-    # ---------------- flight to the handover height (the sim's start: nose 90 mm above the ground)
-    p0_sim, q0_sim, *_ = sim.at(0.0)
-    z_hand = float(p0_sim[1])
-    FL = DM.Flight(v0=V0, T=0.25, w0=TIP_OFF)
-    fl = FL.run((cg_sep[0], cg_sep[2]), 34.0, z_hand)
-    t_fl = fl[-1, 0]
+    fl = case.rows
+    t_fl = case.t_fl
     tau_h = tau_sep + t_fl
-    Y_plane = cg_sep[1]
-    say("flight", round(t_fl, 3), "s, handover CG x", round(fl[-1, 1], 3), "z", round(fl[-1, 2], 4), "body pitch",
-        round(math.degrees(fl[-1, 3]), 1), "path", round(math.degrees(math.atan2(fl[-1, 5], fl[-1, 4])), 1),
-        "v", round(math.hypot(fl[-1, 4], fl[-1, 5]), 2))
-    # sim -> world: heading of the sim's initial velocity onto +X, body origin onto the flight CG at the handover
-    v0s = np.array([sim.col("vx")[0], sim.col("vy")[0], sim.col("vz")[0]])
-    vw = DM.C_SIM @ v0s
-    yaw = -math.atan2(vw[1], vw[0])
-    Rw = DM.Rz(yaw) @ DM.C_SIM
-    off = np.array([fl[-1, 1], Y_plane, fl[-1, 2]]) - Rw @ p0_sim
-    SMAP = DM.SimMap(yaw, off)
-    root0, R_sim0 = SMAP.root(p0_sim, q0_sim, CGX)
-    th0, phi0, psi0 = DM.decompose(R_sim0)
-    v_sim_w = Rw @ v0s
-    v_fl = np.array([fl[-1, 4], 0.0, fl[-1, 5]])
-    mism = dict(sim_gamma_deg=round(sm["landing"]["gammaDeg"], 2), sim_body_pitch_deg=round(math.degrees(th0), 2),
-                flight_body_pitch_deg=round(math.degrees(fl[-1, 3]), 2),
-                flight_path_deg=round(math.degrees(math.atan2(fl[-1, 5], fl[-1, 4])), 2),
-                sim_roll_deg=round(math.degrees(phi0), 1), flight_roll_deg=0.0, sim_yaw_deg=round(sm["landing"]["yawDeg"], 2),
-                speed_flight=round(float(np.linalg.norm(v_fl)), 3), speed_sim=round(float(np.linalg.norm(v_sim_w)), 3),
-                dv=round(float(np.linalg.norm(v_sim_w - v_fl)), 3), sim_spin_rad_s=sm["landing"]["spin"],
-                pitch_blend_deg=round(math.degrees(th0 - fl[-1, 3]), 2))
-    say("handover mismatch:", mism)
+    say("flight", case.summary())
+    import search_landing as SL
+    reel_w = SL.reel_point(B)
+    init = case.sim_init(CGX, reel_w)
 
-    # roll schedule (flight) and the attitude blend into the sim's start
-    T_BLEND = 0.10
-    t_roll0 = 0.10
+    # ---------------- the righting sim FROM the flight's end state (sim world = C^T world, same origin)
+    sim_path = os.path.join(HERE, "sim", "sim_pick.json")
+    os.makedirs(os.path.dirname(sim_path), exist_ok=True)
+    stale = True
+    if os.path.exists(sim_path) and not args.rerun_sim:
+        old = json.load(open(sim_path))["meta"].get("init")
+        stale = old is None or np.abs(np.r_[np.concatenate([old[k] for k in ("p", "q", "v", "w", "cg", "reel")])]
+                                      - np.r_[np.concatenate([init[k] for k in ("p", "q", "v", "w", "cg", "reel")])]).max() > 1e-9
+    if stale:
+        job = dict(SIM_JOB, out=sim_path, seed=0, init=init, dump=True, dtFine=0.002, tFine=3.0, dtCoarse=0.01)
+        env = dict(os.environ)
+        if args.node_path:
+            env["NODE_PATH"] = args.node_path
+        subprocess.run(["node", os.path.join(HERE, "sim_dump.mjs"), json.dumps(job)], check=True, env=env, cwd=HERE)
+    sim = DM.SimTrace(sim_path)
+    sm = sim.summary
+    say("sim from the flight end: righted", sm["righted"], "rightT", round(sm["rightT"] or -1, 2), "anchored", sm["anchored"],
+        "held", sm["held"], "moves", [(m["move"], round(m["t"], 2), round(m["tilt"])) for m in sm["moves"]])
+    if not (sm["righted"] and sm["anchored"] == 2 and sm["held"] >= 55 and any(m["move"] in SL.LEG_MOVES for m in sm["moves"])):
+        raise SystemExit("the picked landing no longer rights with the leg, plants both drills and holds: re-run search_landing.py")
+    ph_sim = dict((p["p"], p["t"]) for p in sm["phases"])
+    t_land_firmware = ph_sim["landing"]                  # the sim firmware's landing flag (hull cylinder low)
+    SMAP = DM.SimMap(0.0, np.zeros(3))
+    t_land_sim = None                                   # first ground contact of the real dart shape (folded cloud)
+    for i in np.where(sim.t <= 0.5)[0]:
+        p_s, q_s, *_ = sim.at(float(sim.t[i]))
+        rp, Rr_ = SMAP.root(p_s, q_s, CGX)
+        if float((cloud @ Rr_.T + rp)[:, 2].min()) <= 0.002:
+            t_land_sim = float(sim.t[i])
+            break
+    t_land_sim = t_land_sim if t_land_sim is not None else t_land_firmware
+    t_right_abs = t_land_firmware + sm["rightT"]
+    t_anch_sim = ph_sim["tow"]                         # both drills at their stops, anchors set
+    t_settle_end = t_anch_sim + 1.0                    # the sim's tow starts with 1 s on the light drag
+    say("first ground contact", round(t_land_sim * 1000, 1), "ms after the handover; righted at sim", round(t_right_abs, 2), "s; anchored", round(t_anch_sim, 2))
+    # continuity at the handover (must be zero: the sim starts from the flight's own state)
+    e = case.end_state()
+    p0_sim, q0_sim, *_ = sim.at(0.0)
+    root0, R0 = SMAP.root(p0_sim, q0_sim, CGX)
+    v0s = DM.C_SIM @ np.array([sim.col("vx")[0], sim.col("vy")[0], sim.col("vz")[0]])
+    w0s = DM.C_SIM @ np.array([sim.col("wx")[0], sim.col("wy")[0], sim.col("wz")[0]])
+    hand = dict(pos_mm=round(float(np.linalg.norm(root0 - e["root"])) * 1000, 4),
+                rot_deg=round(math.degrees(math.acos(min(1.0, (np.trace(R0.T @ e["R"]) - 1) / 2))), 4),
+                v_flight=np.round(e["v"], 4).tolist(), v_sim_com=np.round(v0s, 4).tolist(),
+                w_flight=np.round(e["w"], 4).tolist(), w_sim=np.round(w0s, 4).tolist(),
+                roll_deg=0.0, note="sim hull COM velocity differs from the flight CG velocity only by w x (COM offset)")
+    say("handover (no blend):", hand)
+    mism = hand
 
     def flight_pose(tf_):
-        """dart:root (p, R) at flight time tf_ (0 = separation)"""
-        r = interp_rows(tf_, fl[:, 0], fl[:, 1:4])
-        x, z, th = r
-        u = (tf_ - t_roll0) / max(1e-9, t_fl - t_roll0)
-        phi = phi0 * DM.smoother(u)
-        R = DM.R_flight(th, phi, 0.0)
-        if tf_ > t_fl - T_BLEND:
-            s = DM.smooth((tf_ - (t_fl - T_BLEND)) / T_BLEND)
-            q = DM.slerp(DM.R2q(R), DM.R2q(R_sim0), s)
-            R = DM.q2R(q)
-        cg = np.array([x, Y_plane, z])
-        return cg - R @ np.array([CGX, 0.0, 0.0]), R
+        return case.pose(tf_)
 
     # ---------------- dart clock and film clock
     T_FIRE = B.t0["flight"]                  # dart clock (s) at full cock = start of the shot
@@ -369,8 +369,14 @@ def build(args):
                 Wd = BM.to_world_m(dart_on_carriage(S))
                 fr["dart"] = ("carriage", Wd[:3, 3], Wd[:3, :3])
             elif td < T_FIRE + tau_sep:
+                # sliding off the cradle at the muzzle speed; the tip-off attitude offset (flight34's initial pitch / yaw
+                # disturbance) builds up over the slide, about the CG, so the flight starts from the same pose
                 s_ = V0 * (td - T_FIRE - tau_home)
-                fr["dart"] = ("slide", Wd_home[:3, 3] + u_dir * s_, R_rail)
+                f_ = DM.smooth(s_ / slide)
+                R0f = DM.R_flight(math.radians(inp["rail_deg"] + inp["dth"]), 0.0, math.radians(inp["dpsi"]))
+                R_ = DM.q2R(DM.slerp(DM.R2q(R_rail), DM.R2q(R0f), f_))
+                cg_ = Wd_home[:3, 3] + R_rail @ case.cg_d + u_dir * s_
+                fr["dart"] = ("slide", cg_ - R_ @ case.cg_d, R_)
             elif td < t_d_hand:
                 p, R = flight_pose(td - T_FIRE - tau_sep)
                 fr["dart"] = ("flight", p, R)
@@ -487,12 +493,18 @@ def build(args):
                     L_new = dd                                   # on the carriage: knot to pusher hole
                     spool_v = 0.0
                 elif flying:
-                    need = dd + line_slack(dd, T_FLIGHT)
-                    if need > L_free:
+                    # storage spool: pulled round by the line when it is tight, free to coast against the LIGHT drag
+                    # (0.25 N on its 35 g effective line mass) when the dart slows faster: slack then runs out of the base
+                    if spool_v <= 0.0:
+                        spool_v = V0
+                    need = dd + line_slack(dd, T_FLIGHT, W_LINE + W_DRAG_FLIGHT)
+                    v_free = max(0.0, spool_v - SPOOL_DECEL * dts)
+                    if L_free + v_free * dts >= need:
+                        spool_v = v_free
+                        L_new = L_free + v_free * dts
+                    else:
                         spool_v = (need - L_free) / dts
                         L_new = need
-                    else:
-                        L_new = L_free
                 elif fr["seg"] == "main":
                     spool_v = min(spool_v, V_OVERRUN)
                     spool_v = max(0.0, spool_v - SPOOL_DECEL * dts)        # spool overruns against the LIGHT drag
@@ -589,7 +601,7 @@ def build(args):
 
     mv = sm["moves"]
     ev = [
-        (fnum(B.t0["aim"]), "aim_start"), (fnum(B.t0["arm"]), "aimed_34deg"), (fnum(B.t0["cock"]), "cock_start"),
+        (fnum(B.t0["aim"]), "aim_start"), (fnum(B.t0["arm"]), "aimed"), (fnum(B.t0["cock"]), "cock_start"),
         (fnum(B.t0["cocked"]), "cocked"), (fnum(film_at_td(T_FIRE + t_rel)), "fire"),
         (fnum(film_at_td(T_FIRE + tau_home)), "carriage_home"), (fnum(film_at_td(T_FIRE + tau_sep)), "muzzle_exit"),
         (fnum(film_at_td(t_d_land)), "impact"),
@@ -601,7 +613,7 @@ def build(args):
     ]
     for m in mv:
         ev.append((fnum(film_at_td(t_d_hand + m["t"])), "righting_" + m["move"].replace(":", "_")))
-    ev += [(fnum(film_at_td(t_d_hand + t_land_sim + sm["rightT"])), "righted"),
+    ev += [(fnum(film_at_td(t_d_hand + t_right_abs)), "righted"),
            (fnum(film_at_td(t_d_hand + ph_sim["anchor"])), "pods_deploy_start")]
     if run.any():
         ev.append((fnum(film_at_td(t_d_hand + float(tS[run][0]))), "drills_start"))
@@ -681,7 +693,7 @@ def build(args):
                                                length=np.round(np.linalg.norm(A_[kk] - C_[kk], axis=1), 4).tolist(),
                                                hook_l=0.012, coil_od=0.016, free_length_pins=round((B.n["spring_free"]) / 1000, 4))
 
-    film_note = (f"30 fps, {NF} frames ({F_total:.1f} s). Slow motion is baked in: real time until 0.35 s before the shot, then "
+    film_note = (f"30 fps, {NF} frames ({F_total:.1f} s). Slow motion is baked in: real time until 0.12 s before the shot, then "
                  f"ramping to 20x for the release, the {T_st * 1000:.0f} ms stroke and the slide off the cradle, easing to 3x in "
                  f"flight, 6x for the impact and bounce, back to real time 1.2 s after impact. The dart's righting and anchoring are "
                  f"real time; the base's drum sequence after landing is compressed to fit inside them (rail low over the top of the "
@@ -709,11 +721,12 @@ def build(args):
         sources=dict(base="base/cad/parts (drum, frame, launch, reel, sensors: joints, kin, line_path) posed with base/out/base/asm.json",
                      shot="base/physics launcher.py chain-spring trace at 34 deg via kedge/dart_model.launch_trace",
                      flight="kedge/flight34.py strip aero + 0.25 N payout drag on the tail tie, tip-off 0.4 rad/s nose down",
-                     landing=f"kedge/sim_righting simCore + v34_check/run34_shared.mjs SimV34 (rigid axle, tail tie), loam seed {SEED}",
+                     landing="kedge/sim_righting simCore + v34_check/run34_shared.mjs SimV34 (rigid axle, tail tie), loam, started from the flight's end state (pose, velocity, angular velocity), no blend",
+                     launch_inputs="search_landing.py seed 8 run 28 (search/search_results_recheck_search_results_s8.json)",
                      line="render/motion/rope.py on the base line_path (reel.line_spans + launch.line_path)"),
-        dart=dict(seed=SEED, handover_mismatch=mism, knot_dart_frame=knot_d.tolist(), cg_station_m=CGX,
+        dart=dict(launch_inputs=dict(PICK, rail_deg_achieved=round(float(B.aim_end_pitch), 4)), handover=mism, knot_dart_frame=knot_d.tolist(), cg_station_m=CGX,
                   auger_rpm=DRILL_RPM, auger_note="drill_leg_L_auger (right-hand flight) turns + about its tip direction (local -x), "
-                  "drill_leg_R_auger (left-hand) the other way: both screw in", sim_to_world=dict(yaw_deg=math.degrees(yaw), offset=off.tolist())),
+                  "drill_leg_R_auger (left-hand) the other way: both screw in", sim_to_world="world = C_SIM @ sim (x, y up, z right) -> (X, -z, y), same origin"),
     )
     path = os.path.join(HERE, "motion.json")
     with open(path, "w") as fh:

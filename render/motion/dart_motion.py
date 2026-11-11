@@ -113,20 +113,32 @@ def dart_parts():
 
 
 # ------------------------------------------------------------------ free flight (flight34 physics)
+_FI = {}
+
+
+def _flight_inputs():
+    """flight34 module, the v34 mass case 'putty, bought x1.0' (mass34) and the out34 strip arrays, loaded once"""
+    if not _FI:
+        import mass34
+        import flight34 as F
+        rows = mass34.load(os.path.join(KEDGE, "out34"))[0]
+        _FI["v"] = (F, mass34.cases(rows)["putty, bought x1.0"], F.Air(os.path.join(KEDGE, "out34")))
+    return _FI["v"]
+
+
 class Flight:
     """Pitch-plane rigid-body flight with the flight34 strip aero, axial drag and the 0.25 N payout drag on the tail tie
     (flight34 'tail eye x 152' point tow), gravity; integrated at 0.2 ms like flight34.fly, kept at every step."""
 
     def __init__(self, v0=6.8, T=0.25, w0=-0.4, dth=0.0):
-        import mass34
-        import flight34 as F
+        F, c, air = _flight_inputs()
         self.F = F
-        rows = mass34.load(os.path.join(KEDGE, "out34"))[0]
-        c = mass34.cases(rows)["putty, bought x1.0"]
         self.mass = c["mass_g"] / 1000
         self.cg = np.asarray(c["cg_mm"], float) / 1000               # dart frame, m
         I = c["I_gmm2"] * 1e-9
-        self.air = F.Air(os.path.join(KEDGE, "out34"))
+        self.I = I
+        self.c = c
+        self.air = air
         self.body = F.Body(self.air, self.mass, c["cg_mm"], I[1, 1], "pitch")
         self.tow = dict(kind="point", x=152.0, z=0.0)
         self.v0, self.T, self.w0, self.dth = v0, T, w0, dth
@@ -154,6 +166,94 @@ class Flight:
             t += dt
             out.append((t, x, z, th, v[0], v[1], w))
         return np.array(out)
+
+
+class Flight3D(Flight):
+    """flight34's two planes run together as one rigid body in 3D: the strip aero of the pitch plane (top-view widths,
+    normal force along the body's up axis e3) and of the yaw plane (side-view widths, along its left axis e2) on the
+    AIR-relative velocity (a steady cross-wind along world Y), one axial drag, gravity, and the 0.25 N payout drag on the
+    tail tie along the trailing line (-v ground). Attitude by heading psi and pitch th; the dart has no roll mechanism in
+    this model (axisymmetric strip aero, line on the axis), so roll stays 0. Body axes: e1 nose, e2 left, e3 = e1 x e2.
+    With r0 = 0 and no wind it is flight34's pitch plane exactly."""
+
+    def __init__(self, v0=6.8, T=0.25, q0=-0.4, r0=0.0, dth=0.0, dpsi=0.0, wind_y=0.0):
+        super().__init__(v0=v0, T=T, w0=q0, dth=dth)
+        self.by = self.F.Body(self.air, self.mass, self.c["cg_mm"], self.I[2, 2], "yaw")
+        self.r0, self.dpsi, self.wind = r0, dpsi, np.array([0.0, wind_y, 0.0])
+
+    @staticmethod
+    def axes(th, psi):
+        e1 = np.array([math.cos(th) * math.cos(psi), math.cos(th) * math.sin(psi), math.sin(th)])
+        e2 = np.array([-math.sin(psi), math.cos(psi), 0.0])
+        return e1, e2, np.cross(e1, e2)
+
+    def run3(self, p0, elev_deg, stop, dt=2e-4, tmax=2.0):
+        """p0 = CG (x, y, z) world at separation; stop(t, pos, th, psi) -> True ends the flight.
+        Rows: t, x, y, z, th, psi, vx, vy, vz, q (pitch rate, nose up +), r (body yaw rate, nose to e2 +)."""
+        F, bp, by = self.F, self.body, self.by
+        th = math.radians(elev_deg + self.dth)
+        psi = math.radians(self.dpsi)
+        q, r = self.w0, self.r0
+        el = math.radians(elev_deg)
+        v = np.array([self.v0 * math.cos(el), 0.0, self.v0 * math.sin(el)])
+        x = np.array(p0, float)
+        t = 0.0
+        g = np.array([0.0, 0.0, -9.81])
+        tow_x, tow_z = self.tow["x"] / 1000, self.tow["z"] / 1000
+        out = [(t, *x, th, psi, *v, q, r)]
+        while t < tmax and not stop(t, x, th, psi):
+            e1, e2, e3 = self.axes(th, psi)
+            va = v - self.wind
+            U = va @ e1
+            Fp, Mp, *_ = F.forces(bp, np.array([U, va @ e3]), q, 0.0)
+            Fy, My, *_ = F.forces(by, np.array([U, va @ e2]), r, 0.0)
+            Ftot = Fp[0] * e1 + Fp[1] * e3 + Fy[1] * e2 + bp.M * g
+            u = -v / max(np.linalg.norm(v), 1e-9)
+            rr = (bp.cgx - tow_x) * e1 + (tow_z - bp.cgz) * e3
+            Ft = self.T * u
+            Mt = np.cross(rr, Ft)
+            Ftot = Ftot + Ft
+            Mp_t = Mp + Mt @ (-e2)
+            My_t = My + Mt @ e3
+            v = v + Ftot / bp.M * dt
+            x = x + v * dt
+            q += Mp_t / bp.I * dt
+            r += My_t / by.I * dt
+            th += q * dt
+            psi += r / max(math.cos(th), 0.05) * dt
+            t += dt
+            out.append((t, *x, th, psi, *v, q, r))
+        return np.array(out)
+
+    @staticmethod
+    def R_of(th, psi):
+        return R_flight(th, 0.0, psi)
+
+    @staticmethod
+    def omega(th, psi, q, r):
+        e1, e2, e3 = Flight3D.axes(th, psi)
+        return -q * e2 + r * e3
+
+
+def dart_cloud(J=None, step=6):
+    """folded dart surface points (dart frame, m): hull, nose, pods, leg (for ground clearance at the handover)"""
+    J = J or dart_parts()
+    PP = {p["name"]: p for p in J["parts"]}
+    pts = []
+    for n in ("hull_top", "hull_bottom", "nose", "drill_leg_L", "drill_leg_R", "drill_leg_L_auger", "drill_leg_R_auger",
+              "righting_leg", "coupler_L", "coupler_R", "pod_cap_L", "pod_cap_R"):
+        if n not in PP:
+            continue
+        v = np.asarray(np.load(os.path.join(KEDGE, "out34", n + ".npz"))["v"], float)[::step] / 1000.0
+        q = PP[n]
+        off = np.zeros(3)
+        while True:
+            off += np.array(q["pos"], float) / 1000.0
+            if not q.get("parent"):
+                break
+            q = PP[q["parent"]]
+        pts.append(v + off)
+    return np.vstack(pts)
 
 
 # ------------------------------------------------------------------ the sim trace

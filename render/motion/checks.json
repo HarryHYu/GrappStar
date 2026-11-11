@@ -9,44 +9,46 @@
   "ok": true
  },
  "flight": {
-  "aoa_max_deg": 16.5,
-  "aoa_at_handover_deg": -16.5,
+  "aoa_max_deg": 12.4,
+  "total_angle_of_attack_at_handover_deg": 12.4,
+  "lateral_drift_mm": 23.7,
+  "heading_end_deg": -3.09,
   "nose_first": true,
-  "time_s": 0.833
+  "time_s": 0.842
  },
  "impact_nose_xyz": [
-  4.766,
-  0.091,
-  0.005
+  4.714,
+  0.113,
+  0.007
  ],
  "rest_nose_xyz": [
-  4.971,
-  0.031,
-  0.02
+  5.143,
+  0.055,
+  0.021
  ],
  "drills": {
   "drill_leg_L": {
    "tip_z_mm_deploy_start_anchored_end": [
-    7.1,
-    -45.6,
-    -44.6
+    24.5,
+    -41.9,
+    -40.1
    ],
    "into_ground": true
   },
   "drill_leg_R": {
    "tip_z_mm_deploy_start_anchored_end": [
-    21.1,
-    -42.4,
-    -40.5
+    30.5,
+    -45.1,
+    -43.9
    ],
    "into_ground": true
   }
  },
  "dart_vs_ground": {
-  "min_z_mm": -2.94,
-  "part": "righting_leg",
-  "frame": 902,
-  "rest_min_z_mm": -0.81,
+  "min_z_mm": -3.14,
+  "part": "nose",
+  "frame": 942,
+  "rest_min_z_mm": -0.24,
   "note": "sim contact is soft and its colliders are a capsule hull, cone nose and capsule pods/leg: a few mm of sink into the soil is expected; drills / motors / augers excluded once the pods are past 12 deg"
  },
  "base_moving_parts_min_z_mm": {
@@ -55,46 +57,55 @@
   "frame": 0
  },
  "line_min_z_mm": 2.1,
- "handover_mismatch": {
-  "sim_gamma_deg": 44.02,
-  "sim_body_pitch_deg": -44.02,
-  "flight_body_pitch_deg": -58.83,
-  "flight_path_deg": -42.33,
-  "sim_roll_deg": 154.1,
-  "flight_roll_deg": 0.0,
-  "sim_yaw_deg": -0.9,
-  "speed_flight": 6.363,
-  "speed_sim": 6.8,
-  "dv": 0.479,
-  "sim_spin_rad_s": {
-   "x": -0.5759308831766248,
-   "y": -0.030576148070394993,
-   "z": 1.8309424044564366
-  },
-  "pitch_blend_deg": 14.81
+ "handover": {
+  "pos_mm": 0.0008,
+  "rot_deg": 0.0001,
+  "v_flight": [
+   4.6883,
+   0.048,
+   -4.3819
+  ],
+  "v_sim_com": [
+   4.6923,
+   0.0477,
+   -4.378
+  ],
+  "w_flight": [
+   0.1241,
+   1.9296,
+   0.0139
+  ],
+  "w_sim": [
+   0.1241,
+   1.9296,
+   0.0139
+  ],
+  "roll_deg": 0.0,
+  "note": "sim hull COM velocity differs from the flight CG velocity only by w x (COM offset)"
  },
  "log": [
-  "sim seed 1021 righted True rightT 8.28 anchored 2 held 55 moves ['legFlip', 'podRoll:R']",
   "loading base kinematics ...",
-  "aim: wiper 1067.78 deg backward from LOW -> pitch 33.997",
-  "shot: release 20.5 ms after full cock; stroke 59.0 ms (launcher.py, v 6.87 m/s)",
-  "separation: slide 204.3 mm on the cradle, CG at [0.3138 0.0915 0.4406] tau 109.6 ms",
-  "flight 0.833 s, handover CG x 4.613 z 0.1474 body pitch -58.8 path -42.3 v 6.36",
-  "handover mismatch: {'sim_gamma_deg': 44.02, 'sim_body_pitch_deg': -44.02, 'flight_body_pitch_deg': -58.83, 'flight_path_deg': -42.33, 'sim_roll_deg': 154.1, 'flight_roll_deg': 0.0, 'sim_yaw_deg': -0.9, 'speed_flight': 6.363, 'speed_sim': 6.8, 'dv': 0.479, 'sim_spin_rad_s': {'x': -0.5759308831766248, 'y': -0.030576148070394993, 'z': 1.8309424044564366}, 'pitch_blend_deg': 14.81}",
-  "film: launch at 16.69 s, handover 23.79 s, anchored+settle 47.42 s, total 57.67 s, 1731 frames",
-  "base drum sequence after landing, x faster than the dart: {'rail_low': np.float64(1.33), 'neutral': np.float64(2.67), 'wrap': np.float64(4.46), 'wrapped': np.float64(2.94)}",
-  "frames evaluated 26.7 s",
-  "auger spin: drilling 8.95 to 18.64 sim s, 7.3 turns at 45.0 rpm",
-  "rope done 49.4 s; max free length 5.172 m; max nodes 104",
+  "aim: wiper 1067.54 deg backward from LOW -> pitch 33.9863 (asked 33.987 )",
+  "shot: release 20.5 ms after full cock; stroke 58.6 ms (launcher.py, carriage 6.85 m/s)",
+  "carriage stop: flexure 18.8 mm, rebound 9.2 mm, settled 53 ms",
+  "flight {'t_flight': 0.8422, 'cg': [4.6483, 0.1153, 0.0939], 'speed': 6.417, 'path_deg': -43.06, 'body_pitch_deg': -55.2, 'heading_deg': -3.09, 'pitch_rate': -1.934, 'yaw_rate': 0.024}",
+  "sim from the flight end: righted True rightT 6.68 anchored 2 held 55 moves [('legFlip', 1.36, 174)]",
+  "first ground contact 4.0 ms after the handover; righted at sim 6.94 s; anchored 18.49",
+  "handover (no blend): {'pos_mm': 0.0008, 'rot_deg': 0.0001, 'v_flight': [4.6883, 0.048, -4.3819], 'v_sim_com': [4.6923, 0.0477, -4.378], 'w_flight': [0.1241, 1.9296, 0.0139], 'w_sim': [0.1241, 1.9296, 0.0139], 'roll_deg': 0.0, 'note': 'sim hull COM velocity differs from the flight CG velocity only by w x (COM offset)'}",
+  "film: launch at 16.69 s, handover 23.81 s, anchored+settle 47.19 s, total 57.44 s, 1724 frames",
+  "base drum sequence after landing, x faster than the dart: {'rail_low': np.float64(1.35), 'neutral': np.float64(2.69), 'wrap': np.float64(4.5), 'wrapped': np.float64(2.97)}",
+  "frames evaluated 28.4 s",
+  "auger spin: drilling 8.77 to 18.48 sim s, 7.3 turns at 45.0 rpm",
+  "rope done 53.7 s; max free length 5.129 m; max nodes 104",
   "tow: tension 20.0 N at the end; capstan take-in 7.3 mm",
   "posing base parts ...",
-  "posed 59.5 s",
-  "wrote /home/user/GrappStar/render/motion/motion.json 5.08 MB; 204 objects ( 33 static off rest )",
+  "posed 64.7 s",
+  "wrote /home/user/GrappStar/render/motion/motion.json 5.1 MB; 204 objects ( 33 static off rest )",
   "check gears: {'rack_rolls_on_big_gear': -1.0, 'expect_rack': -1.0, 'drive_per_big_gear': -1.5385, 'expect_drive': -1.5385, 'wiper_forward_while_cocking': True, 'carriage_back_while_cocking': True, 'ok': True}",
-  "check flight: {'aoa_max_deg': 16.5, 'aoa_at_handover_deg': -16.5, 'nose_first': True, 'time_s': 0.833}",
-  "check impact nose at [4.766, 0.091, 0.005] rest [4.971, 0.031, 0.02]",
-  "check drills: {'drill_leg_L': {'tip_z_mm_deploy_start_anchored_end': [7.1, -45.6, -44.6], 'into_ground': True}, 'drill_leg_R': {'tip_z_mm_deploy_start_anchored_end': [21.1, -42.4, -40.5], 'into_ground': True}}",
-  "check dart vs ground: {'min_z_mm': -2.94, 'part': 'righting_leg', 'frame': 902, 'rest_min_z_mm': -0.81, 'note': 'sim contact is soft and its colliders are a capsule hull, cone nose and capsule pods/leg: a few mm of sink into the soil is expected; drills / motors / augers excluded once the pods are past 12 deg'}",
+  "check flight: {'aoa_max_deg': 12.4, 'total_angle_of_attack_at_handover_deg': 12.4, 'lateral_drift_mm': 23.7, 'heading_end_deg': -3.09, 'nose_first': True, 'time_s': 0.842}",
+  "check impact nose at [4.714, 0.113, 0.007] rest [5.143, 0.055, 0.021]",
+  "check drills: {'drill_leg_L': {'tip_z_mm_deploy_start_anchored_end': [24.5, -41.9, -40.1], 'into_ground': True}, 'drill_leg_R': {'tip_z_mm_deploy_start_anchored_end': [30.5, -45.1, -43.9], 'into_ground': True}}",
+  "check dart vs ground: {'min_z_mm': -3.14, 'part': 'nose', 'frame': 942, 'rest_min_z_mm': -0.24, 'note': 'sim contact is soft and its colliders are a capsule hull, cone nose and capsule pods/leg: a few mm of sink into the soil is expected; drills / motors / augers excluded once the pods are past 12 deg'}",
   "check base moving parts min z: {'z': 12.44, 'part': 'drum_drum_a', 'frame': 0}",
   "check line min z mm: 2.1"
  ]

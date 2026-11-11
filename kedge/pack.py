@@ -24,6 +24,8 @@ if "righting_leg" in PP:                  # v34: rear pods folded forward (mirro
                    "righting_leg": RM(math.pi, X),                                                  # upside down: the crown strip on the bed, cheeks up
                    "leg_coupler_L": RM(math.pi, X), "leg_coupler_R": RM(math.pi, X),                 # lying on the D flat
                    "leg_plug_L": RM(math.pi / 2, X), "leg_plug_R": RM(-math.pi / 2, X)})             # flat inner face down
+if J["P"].get("POD_DIR") == 1:           # v35: pods hinge at the front and point aft (arms and augers no longer mirrored)
+    ORIENT.update({k: RM(-math.pi / 2, Y) for k in ["drill_leg_L", "drill_leg_R", "drill_leg_L_auger", "drill_leg_R_auger"]})
 ORIENT = {k: v for k, v in ORIENT.items() if k in PP}          # older builds have no pod caps
 SUPPORT = {   # what the slicer must do (Bambu Studio, PLA, 0.4 nozzle, 0.2 layers)
     "hull_top": "tree supports ON, build plate only: the inner roof of the half shell (about 28 mm wide strip); pivot blocks, saddle and ear print without (arc outlines, 45 deg undersides)",

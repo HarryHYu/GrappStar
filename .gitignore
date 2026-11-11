@@ -17,6 +17,7 @@ kedge/work/sec5_v32.md
 kedge/work/yoke.py
 kedge/work/*.stl
 kedge/work/v34*/
+kedge/work/v35*/
 kedge/work/pack_test/
 kedge/work/views_*.json
 render/.venv/

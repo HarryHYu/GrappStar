@@ -342,30 +342,22 @@ def sim_job(out=None):
     J = json.load(open(os.path.join(out, "parts.json")))
     P, PP = J["P"], {p["name"]: p for p in J["parts"]}
     rows = mass34.load(out)[0]
-    c = mass34.cases(rows)["putty, bought x1.0"]
-
-    def group_mass(root):
-        names = {root} | {n for n, p in PP.items() if p.get("parent") == root}
-        names |= {n for n, p in PP.items() if p.get("parent") in names}
-        return sum(r["m"] if "m" in r else r.get("mass_g", 0) / 1000 for r in rows if r.get("name") in names) if rows else None
+    g = mass34.case(rows)["groups"]                                   # hull / deploy (both pods) / leg masses and CGs
     pl = PP["drill_leg_L"]
     piv = np.array(pl["pos"], float)
     au = np.asarray(np.load(os.path.join(out, "drill_leg_L_auger.npz"))["v"], float)
     tip = au[np.argmax(np.linalg.norm(au, axis=1))]
-    fold = 1 if tip[0] < 0 else -1                                   # folded tip toward the nose (+1, v34) or the tail (-1)
+    fold = 1 if tip[0] < 0 else -1                                   # folded tip toward the nose (+1, v34) or the tail (-1, v35)
     lg = PP["righting_leg"]
-    m_pod = group_mass("drill_leg_L") or 0.026
-    m_leg = group_mass("righting_leg") or 0.0055
-    M = c["mass_g"] / 1000
     layout = "tail" if fold == 1 else "front"
     job = {"cfg": {"axle": "rigid", "tie": True, "legLen": 3, "tieX": float(P["TIE"]["holes"][0][0]),
                    "tieY": float(P["TIE"]["holes"][0][2])},
-           "D": {"hull": {"mass": round(M - 2 * m_pod - m_leg, 4), "cgX": round(float(c["cg_mm"][0]), 2)},
-                 "pod": {"mass": round(m_pod, 4), "pivotX": float(piv[0]), "pivotY": float(piv[2]),
+           "D": {"hull": {"mass": round(g["hull"]["mass_g"] / 1000, 4), "cgX": round(float(g["hull"]["cg_mm"][0]), 2)},
+                 "pod": {"mass": round(g["deploy"]["mass_g"] / 2000, 4), "pivotX": float(piv[0]), "pivotY": float(piv[2]),
                          "stopDeg": float(P["DEPLOY_DEG"]), "lat": abs(float(piv[1])), "len": round(float(np.linalg.norm(tip)), 2)},
-                 "leg": {"mass": round(m_leg, 4), "hingeX": float(lg["pos"][0]), "hingeY": float(lg["pos"][2]),
+                 "leg": {"mass": round(g["leg"]["mass_g"] / 1000, 4), "hingeX": float(lg["pos"][0]), "hingeY": float(lg["pos"][2]),
                          "stopDeg": float(P.get("LEG_DEG", 178.0)), "len": 113, "padW": 37, "pad": 3.5}},
-           "LAYOUTS": {layout: {"pivotX": float(piv[0]), "fold": fold}}, "cgUp": round(float(c["cg_mm"][2]), 2) - 3.0,
+           "LAYOUTS": {layout: {"pivotX": float(piv[0]), "fold": fold}}, "cgUp": round(float(g["hull"]["cg_mm"][2]), 2),
            "soil": "loam", "layout": layout}
     return job
 
@@ -376,8 +368,8 @@ def joint_map(out=None):
     out = out or OUT
     J = json.load(open(os.path.join(out, "parts.json")))
     PP = {p["name"]: p for p in J["parts"]}
-    job = sim_job(out)
-    f = job["LAYOUTS"][job["layout"]].get("fold", 1)
+    au = np.asarray(np.load(os.path.join(out, "drill_leg_L_auger.npz"))["v"], float)
+    f = 1 if au[np.argmax(np.linalg.norm(au, axis=1))][0] < 0 else -1      # pods fold toward the nose (v34) or the tail (v35)
     ax_pod = M_D2S.T @ np.array([0.0, 0.0, -f])
     ax_leg = M_D2S.T @ np.array([0.0, 0.0, -1.0])
     k_pod = float(np.sign(ax_pod[1])) * PP["drill_leg_L"].get("sgn", 1)

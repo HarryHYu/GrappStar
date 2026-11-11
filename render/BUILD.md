@@ -74,13 +74,13 @@ down) that grows in as the cut passes. No popping: every crumb scales in over a 
 | Camera | Frames | Placement | Shows |
 |---|---|---|---|
 | cam:A | 0 .. cut - 1 | wide 3/4 side from the +y side, behind the base's side, 9.5 m from the base-landing midpoint, 1.5 m high | aim, cock, fire, flight, landing, righting, pods and drills starting |
-| cam:B | cut .. end | side-on to the line, a little oblique: abreast of 1 m down the line, 2.7 m off it, 1.2 m high | reel winding, the line lifting taut and holding |
+| cam:B | cut .. end | side-on to the line, a little toward the base: abreast of 1.9 m down the line, 5.2 m off it, 1.7 m high (tall tripod: the line is seen against the ground just beyond it), lens fitted within 24-35 mm | reel winding, the line lifting taut and holding |
 
 The cut is motion.json's `cut` event (fallback: `tidy_start`). Neither camera moves or zooms: build.py places
 each one by these few parameters (CAM_A, CAM_B at the top of the camera section) and FITS its aim and focal length
 to the action from motion.json (base board, the dart's flight arc and rest spot for A; the base, the line at its
 last key and the dart for B), so a new dart, landing spot or timing reframes itself on a rerun (with the current
-data: A about 50 mm, B about 17 mm). DOF is real (f/5.6, focus on the action's middle: everything that matters is
+data: A about 50 mm, B about 30 mm). DOF is real (f/5.6, focus on the action's middle: everything that matters is
 sharp at these distances). TRIPOD_SHAKE adds a sub-pixel F-curve noise to the camera rotation (a tripod in a
 breeze; set 0 to remove).
 
@@ -112,7 +112,9 @@ scatter > Density (1.0 full, 0.5 half the clumps), Mow; render samples in preset
 - The dart's tumble in the sim sinks it up to 1.7 mm into the terrain (hidden by the grass); at rest 0.1 mm.
 - Grass has no collision: pressed clumps under the dart are flattened, but a blade from an unpressed clump can
   still cross the dart's edge in a close-up.
-- The 1 mm line is sub-pixel in cam:A (realistic); cam:B is placed so it is about 1 px wide at 4K near the base.
+- The 1 mm line is sub-pixel in cam:A (realistic). In cam:B at 3840x2160 it reads as a 1-2 px yellow line all the
+  way from the base to the dart (native crops `--crop-test B:taut` -> render/out/crop_B_taut_1..3.png, 5.4 to
+  6.0 m away); on straw-coloured grass its contrast will be lower than on the current green test paddock.
 - EEVEE in software here takes about 14 s per 320x180 frame (and minutes for the first shader compile), so the
   motion check is Cycles 6 spp, 480x270, grass Density 0.5, every frame (the real-time shot spans 2 frames).
   On the Mac the first EEVEE frame compiles shaders (a few minutes), then it is fast.

@@ -1077,9 +1077,10 @@ def build_fx(scene, mo, models, env, report):
 # side-on to the line. No moves, no zoom; aim and focal length are FITTED to the action from motion.json, so a
 # different dart / landing spot / timing reframes itself on a rerun.
 CAM_A = dict(dist=9.5, height=1.5, side=0.92, back=-0.40, fill=0.80, fstop=5.6)    # back < 0: behind the base side
-CAM_B = dict(dist=2.7, height=1.2, along=1.0, fill=0.86, fstop=5.6)    # abreast of 1 m down the line from the base:
-                                    # side-on but a little oblique, so the 1 mm line is about 1 px wide at 4K near
-                                    # the base and still reads out to the dart
+CAM_B = dict(dist=5.2, height=1.7, along=1.9, fill=0.84, fstop=5.6, lens=(24.0, 35.0))
+                                    # side-on to the line, a little toward the base, a tall tripod so the line is
+                                    # seen against the ground just beyond it (shorter, darker near the base and the
+                                    # landing patch) rather than against far straw grass; lens kept 24..35 mm
 TRIPOD_SHAKE = 0.00022              # rad, F-curve noise on the camera rotation (about 1 px at 4K): a tripod in a
                                     # light breeze, not handheld; 0 disables
 LOOK = dict(distortion=0.012, dispersion=0.003, vignette=0.24, grain=0.045)     # compositor "real camera" look
@@ -1147,7 +1148,7 @@ def make_shots(mo, entry=None):
     fl = cg[f_fire:f_imp + 1:3]
     ptsA = np.vstack([board, [[0.0, 0.0, 0.40]], fl, rest + 0.35 * L, rest - 0.35 * L, rest + 0.3 * n,
                       rest - 0.3 * n])
-    tgtA, lensA = fit_camera(posA, ptsA, CAM_A["fill"])
+    tgtA, lensA = fit_camera(posA, ptsA, CAM_A["fill"], lens_range=CAM_A.get("lens", (14.0, 200.0)))
     focA = mid + np.array([0.0, 0.0, 0.3])
     # cam:B: roughly side-on to the line, base reel to the dart
     Lk = mo.M["line"]
@@ -1159,7 +1160,7 @@ def make_shots(mo, entry=None):
     posB = base * np.array([1, 1, 0]) + L * CAM_B["along"] + n * CAM_B["dist"] + np.array([0.0, 0.0, CAM_B["height"]])
     ptsB = np.vstack([board, [[0.0, 0.0, 0.40]], P_end, rest + 0.15 * L, rest - 0.15 * L,
                       rest + np.array([0.0, 0.0, 0.08])])
-    tgtB, lensB = fit_camera(posB, ptsB, CAM_B["fill"])
+    tgtB, lensB = fit_camera(posB, ptsB, CAM_B["fill"], lens_range=CAM_B.get("lens", (14.0, 200.0)))
     focB = midB + np.array([0.0, 0.0, 0.15])
     i_ap = f_fire + int(np.argmax(cg[f_fire:f_imp + 1, 2]))
     stA = dict(aim=f_aim + (f_cock - f_aim) * 3 // 4, cock=(f_cock + f_fire) // 2, launch=f_fire + 1,
@@ -1456,6 +1457,50 @@ def render_frames(scene, frames, samples=32, cam_spec="", size=(640, 360), tag="
     return out
 
 
+def crop_test(scene, cam_letter="B", moment="taut", fracs=(0.15, 0.5, 0.85), size=(960, 540), samples=32):
+    """native 3840x2160 crops (render border) round points along the line at a camera's key moment ->
+    render/out/frames/crop_<cam>_<moment>_<n>.png: does the 1 mm line read at 4K?"""
+    import env
+    from bpy_extras.object_utils import world_to_camera_view
+    shot = [s for s in find_shots(scene) if s[0].startswith(cam_letter)][0]
+    cam = shot[3]
+    f = int(json.loads(cam.get("stills", "{}")).get(moment, (shot[1] + shot[2]) // 2))
+    env.set_render(scene, "CYCLES", "preview", motion_blur=True, samples=samples)
+    scene.render.motion_blur_shutter = 0.5
+    scene.cycles.device = "CPU"
+    r = scene.render
+    r.resolution_x, r.resolution_y, r.resolution_percentage = 3840, 2160, 100
+    r.use_border, r.use_crop_to_border = True, True
+    for m in scene.timeline_markers:
+        m.camera = None
+    scene.camera = cam
+    scene.frame_set(f)
+    dg = bpy.context.evaluated_depsgraph_get()
+    tether = bpy.data.objects["line:tether"].evaluated_get(dg)
+    me = tether.to_mesh()
+    co = np.array([tether.matrix_world @ v.co for v in me.vertices])
+    tether.to_mesh_clear()
+    co = co[co[:, 0] > 0.45]                                   # free line in front of the base
+    co = co[np.argsort(co[:, 0])]
+    out = []
+    for k, fr in enumerate(fracs):
+        p = Vector(co[int(fr * (len(co) - 1))])
+        uv = world_to_camera_view(scene, cam, p)
+        hw, hh = 0.5 * size[0] / 3840, 0.5 * size[1] / 2160
+        r.border_min_x, r.border_max_x = max(0.0, uv.x - hw), min(1.0, uv.x + hw)
+        r.border_min_y, r.border_max_y = max(0.0, uv.y - hh), min(1.0, uv.y + hh)
+        path = os.path.join(FRAMES_DIR, "crop_%s_%s_%d.png" % (cam_letter, moment, k + 1))
+        r.filepath = path
+        t0 = time.time()
+        bpy.ops.render.render(write_still=True)
+        say("crop %s at %s (frame %d, distance %.1f m) in %.0fs" % (path, tuple(round(c, 2) for c in p), f,
+                                                                   (p - cam.matrix_world.translation).length,
+                                                                   time.time() - t0))
+        out.append(path)
+    r.use_border = False
+    return out
+
+
 def contact_sheet():
     files = sorted(f for f in os.listdir(OUT) if f.startswith("shot_") and f.endswith(".png"))
     if not files:
@@ -1551,6 +1596,7 @@ def main():
     ap.add_argument("--frames", default="", help="debug stills of these frames (comma list) -> out/frames/")
     ap.add_argument("--cam", default="", help="custom debug camera 'x,y,z:tx,ty,tz:lens' for --frames")
     ap.add_argument("--tag", default="check")
+    ap.add_argument("--crop-test", default="", help="native 4K crops along the line, e.g. B:taut")
     a = ap.parse_args(argv)
     report = {}
     if a.check_only:
@@ -1565,6 +1611,9 @@ def main():
             json.dump(report, fh, indent=1, default=str)
     if a.shots:
         render_stills(scene, a.shots, a.samples)
+    if a.crop_test:
+        cl, mom = (a.crop_test.split(":") + ["taut"])[:2]
+        crop_test(scene, cl, mom, samples=a.samples)
     if a.frames:
         render_frames(scene, [int(v) for v in a.frames.split(",")], a.samples, a.cam, tag=a.tag)
     if a.motion_check:

@@ -925,7 +925,7 @@ def _mat_ground(hdri_img):
     cam = nt.node("ShaderNodeCameraData")
     dist = cam.outputs["View Distance"]
     normal = _nmap(nt, ncol, nt.mixf(soil_m, 0.7, 1.0))
-    bsdf = nt.principled(col, nt.math("MAXIMUM", rough, 0.85), normal, spec=0.04)   # the sheen is the blades'
+    bsdf = nt.principled(col, nt.math("MAXIMUM", rough, 0.9), normal, spec=0.02)    # rough, matte
     shader = _hazed(nt, bsdf)
     em = nt.node("ShaderNodeEmission")
     em.inputs["Color"].default_value = tuple(0.8 * WORLD_STRENGTH * SKY_CAMERA_GAIN * c for c in HAZE_COLOR) + (1,)
@@ -967,11 +967,11 @@ def _mat_grass():
     wv = nt.node("ShaderNodeTexWhiteNoise", noise_dimensions="1D")
     nt.set(wv.inputs["W"], nt.math("ADD", br, 3.7))
     tilt = nt.vmath("SCALE", nt.vmath("SUBTRACT", wv.outputs["Color"], (0.5, 0.5, 0.5)))
-    tilt.node.inputs["Scale"].default_value = 0.6
+    tilt.node.inputs["Scale"].default_value = 0.4
     nrm = nt.vmath("NORMALIZE", nt.vmath("ADD", geo.outputs["Normal"], tilt))
-    rough = nt.mixf(rnd, 0.28, 0.5)
+    rough = nt.mixf(rnd, 0.58, 0.75)                   # matte: only the odd blade glints
     rough = nt.mixf(nt.ss(dfac, 0.4, 1.0), rough, 0.55)
-    bsdf = nt.principled(col, rough, nrm, spec=0.5)
+    bsdf = nt.principled(col, rough, nrm, spec=nt.mixf(nt.ss(rnd, 0.85, 1.0), 0.18, 0.45))
     tr = nt.node("ShaderNodeBsdfTranslucent")
     nt.set(tr.inputs["Color"], nt.mix(0.45, nt.mix(1.0, col, (1.6, 1.6, 1.2), "MULTIPLY"), (0.42, 0.50, 0.10)))
     nt.output(_hazed(nt, nt.mixsh(nt.mixf(dfac, 0.42, 0.3), bsdf, tr.outputs[0])))
@@ -999,7 +999,7 @@ def _mat_sandstone():
     nt.set(bump.inputs["Height"], nt.math("ADD", nz.outputs["Fac"], nt.math("MULTIPLY", grain.outputs["Fac"], 0.3)))
     bump.inputs["Strength"].default_value = 0.6
     bump.inputs["Distance"].default_value = 0.02
-    nt.output(_hazed(nt, nt.principled(col, 0.85, bump.outputs["Normal"], spec=0.3)))
+    nt.output(_hazed(nt, nt.principled(col, 0.95, bump.outputs["Normal"], spec=0.15)))
     return m
 
 
@@ -1016,7 +1016,7 @@ def _mat_sack():
     bump = nt.node("ShaderNodeBump")
     nt.set(bump.inputs["Height"], wv.outputs["Fac"])
     bump.inputs["Strength"].default_value = 0.15
-    nt.output(_hazed(nt, nt.principled(col, 0.55, bump.outputs["Normal"], spec=0.4)))
+    nt.output(_hazed(nt, nt.principled(col, 0.92, bump.outputs["Normal"], spec=0.12)))
     return m
 
 
@@ -1131,7 +1131,7 @@ def _mat_rock():
     nt.set(bump.inputs["Height"], nz.outputs["Fac"])
     bump.inputs["Strength"].default_value = 0.5
     bump.inputs["Distance"].default_value = 0.004
-    nt.output(nt.principled(col, 0.75, bump.outputs["Normal"], spec=0.35))
+    nt.output(nt.principled(col, 0.92, bump.outputs["Normal"], spec=0.15))
     return m
 
 
@@ -1165,7 +1165,7 @@ def _mat_timber():
     gz = nt.attr("gz").outputs["Fac"]
     zfac = nt.ss(nt.math("SUBTRACT", sep.outputs["Z"], gz), 0.25, 0.0)
     c = nt.mix(nt.math("MULTIPLY", zfac, 0.6), c, nt.mix(1.0, c, (0.55, 0.48, 0.40), "MULTIPLY"))
-    nt.output(_hazed(nt, nt.principled(c, r, _nmap(nt, n, 1.3), spec=0.3)))
+    nt.output(_hazed(nt, nt.principled(c, nt.math("MAXIMUM", r, 0.85), _nmap(nt, n, 2.0), spec=0.15)))
     return m
 
 
@@ -2641,12 +2641,12 @@ def build_env(scene, quality=None, clear_zones=(), board_clear=True, board_half=
     mats = dict(ground=_mat_ground(hdri_img), grass=_mat_grass(), gum_bark=_mat_gum_bark(),
                 gum_leaf=_mat_gum_canopy(), leaf_litter=_mat_leaf_litter(), bark_strip=_mat_bark_strip(),
                 deadwood=_mat_deadwood(), rock=_mat_rock(), manure=_mat_manure(), timber=_mat_timber(),
-                galv=_mat_metal("env:galvanised", (0.55, 0.56, 0.57), 0.35, 0.9, spangle=True),
-                wire=_mat_metal("env:wire", (0.6, 0.6, 0.6), 0.3, 1.0),
+                galv=_mat_metal("env:galvanised", (0.42, 0.43, 0.43), 0.62, 0.7, spangle=True),
+                wire=_mat_metal("env:wire", (0.5, 0.5, 0.5), 0.55, 0.8),
                 picket=_mat_plain("env:picket_black", (0.025, 0.025, 0.025), 0.5, 0.5),
                 cap=_mat_plain("env:tread_in_post", (0.72, 0.72, 0.69), 0.45, 0.4),
                 tape=_mat_plain("env:sighter_tape", (0.74, 0.74, 0.70), 0.6, 0.3, trans=0.25),
-                roof=_mat_metal("env:roof_steel", (0.10, 0.10, 0.10), 0.45, 0.7), sandstone=_mat_sandstone(),
+                roof=_mat_metal("env:roof_steel", (0.10, 0.10, 0.10), 0.65, 0.6), sandstone=_mat_sandstone(),
                 sack=_mat_sack(), endgrain=_mat_endgrain())
     mats["leaf_gum"] = _mat_leafy("env:leaf_gum", [(0.0, (0.045, 0.075, 0.035)), (0.5, (0.065, 0.095, 0.045)),
                                                    (0.85, (0.085, 0.11, 0.05)), (1.0, (0.16, 0.13, 0.06))],

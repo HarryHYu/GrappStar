@@ -36,7 +36,7 @@ r.use_compositing = True                                      # the camera look
 if a.start is not None or a.end is not None:
     ranges = [(a.start if a.start is not None else sc.frame_start, a.end if a.end is not None else sc.frame_end)]
 else:
-    spec = sc.get("grappstar_ranges", "%d-%d" % (sc.frame_start, sc.frame_end))
+    spec = "273-650,859-960"                                   # short cut (Harry, deadline): launch to drills, line taut
     ranges = [tuple(int(x) for x in rr.split("-")) for rr in spec.split(",")]
 
 if a.engine == "cycles":
@@ -57,9 +57,12 @@ if a.engine == "cycles":
 else:
     r.engine = "BLENDER_EEVEE"
     ee = sc.eevee
-    ee.taa_render_samples = {"preview": 12, "hd720": 20, "final": 32, "uhd": 48, "hero": 128}[a.preset]
+    ee.taa_render_samples = {"preview": 12, "hd720": 10, "final": 32, "uhd": 48, "hero": 128}[a.preset]
 
 os.makedirs(a.out, exist_ok=True)
+for _f in os.listdir(a.out):                                  # empty placeholders from a stopped run: render them again
+    if _f.startswith("f_") and _f.endswith(".png") and os.path.getsize(os.path.join(a.out, _f)) == 0:
+        os.remove(os.path.join(a.out, _f))
 r.filepath = os.path.join(a.out, "f_")
 if hasattr(r.image_settings, "media_type"):
     r.image_settings.media_type = "IMAGE"

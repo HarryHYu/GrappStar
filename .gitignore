@@ -22,3 +22,6 @@ kedge/work/views_*.json
 render/.venv/
 render/assets/cache/
 render/out/frames/
+render/out/*.blend
+render/out/*.blend1
+render/out/build_report.json

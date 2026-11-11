@@ -95,13 +95,13 @@ above the top edge of its frame (at least 20 deg up) with env.set_sun(scene, az,
 backlight, glowing grass edges, long shadows toward the camera, the base partly silhouetted with rim light; cam:B,
 side-on, is backlit too (SUN at the top of the camera section).
 
-**Camera look ("real phone footage").** View: AgX Punchy, warm white balance (7000 K), exposure +0.25 over the env
-(exposed for the sunlit grass, highlights bloom). Compositor node group `GS_camera_look`: a warm veil and four faint
-lens ghosts placed from the sun's position relative to each camera (switched at the cut), fog-glow bloom on the
-highlights, mild barrel distortion with chromatic aberration, lens softness then a phone-style sharpening halo,
-a soft vignette, a touch more saturation in the yellows, and per-frame sensor noise (luma, plus blotchy
-half-resolution chroma). 180 deg shutter motion blur. The .blend renders 1920x1080 EEVEE by default (it reads most
-like real footage); the Mac preset uhd gives 3840x2160. The motion check MP4 is H.264 CRF 23. All knobs are in LOOK.
+**Camera look (toned down: a clean modern phone video in sun).** View: AgX Medium High Contrast, neutral white
+balance (5700 K: no yellow cast from the warm sun), exposure +0.6 over the env (backlit lawn). Compositor node group
+`GS_camera_look`: a hint of warm sun veil and very faint lens ghosts placed from the sun's position per camera, mild
+fog-glow bloom on clipped highlights, slight barrel distortion and chromatic aberration, barely-there softness and
+sharpening, a light vignette, faint per-frame sensor noise. 180 deg shutter motion blur. All knobs are in LOOK.
+The Mac hd720 preset renders without the compositor and without white balance (Harry's current cut); cy720 renders
+with it.
 
 **Key-moment stills** (`--shots`): cam:A aim, cock, launch, flight apex, impact, righting, drills; cam:B after the
 cut, taut, tow, end; frames are stored on the cameras (custom property `stills`) and printed on the contact sheet.
@@ -117,7 +117,11 @@ Copy `render/out/grappstar_mission.blend` and `render/mac/` (`render_mac.command
 1 motion blur step, grass Density 0.8), resumable, then one H.264 MP4 at CRF 23. The film is about 25 s: the two
 frame ranges in the .blend (scene property grappstar_ranges, now 273-712 and 859-1157: launch, flight, landing,
 righting and drills on cam:A, then the line going taut and the tow on cam:B), rendered back to back.
-`bash render_mac.command final` renders 1920x1080, `uhd` 3840x2160. Quick test: `bash render_mac.command preview eevee 500 560`. Cycles hero stills:
+`bash render_mac.command final` renders 1920x1080, `uhd` 3840x2160. `bash render_mac.command cy720` renders
+with Cycles on the Apple GPU (Metal, 16 samples, adaptive, OpenImageDenoise, 5 bounces, persistent data; about
+6-10 s per frame on an M3 10-core GPU, estimated) into frames_cy720/, ranges 273-650 and 859-960, with the camera
+look. still.py renders a 4K Cycles still from a custom camera (`--view rear|front`). `build.py --pack` zips the
+.blend and the Mac files into render/out/grappstar_render.zip (folder grappstar_render/). Quick test: `bash render_mac.command preview eevee 500 560`. Cycles hero stills:
 `bash render_mac.command hero cycles 520 520`. Rough time per frame on an M3 16 GB: preview 3-6 s, final 8-15 s,
 uhd 25-45 s, plus a few minutes of shader compiling on the first frame. Speed knobs in the .blend: `env:grass` > Modifiers >
 scatter > Density (1.0 full, 0.5 half the clumps), Mow; render samples in preset.py.

@@ -1849,6 +1849,32 @@ def motion_check(scene, step=1, density=0.5, samples=6, engine="CYCLES", size=(4
     encode_motion_check(d, step)
 
 
+def pack_zip():
+    """render/out/grappstar_render.zip: grappstar_render/ with the .blend and the Mac files"""
+    import zipfile
+    out = os.path.join(OUT, "grappstar_render.zip")
+    mac = os.path.join(HERE, "mac")
+    items = [(BLEND, zipfile.ZIP_STORED)] + [(os.path.join(mac, f), zipfile.ZIP_DEFLATED) for f in
+                                             ("preset.py", "render_mac.command", "still.py", "README_MAC.md")]
+    with zipfile.ZipFile(out, "w") as z:
+        for path, comp in items:
+            if not os.path.exists(path):
+                say("pack: missing", path)
+                continue
+            zi = zipfile.ZipInfo.from_file(path, arcname="grappstar_render/" + os.path.basename(path))
+            zi.compress_type = comp
+            if path.endswith(".command"):
+                zi.external_attr = (0o100755 << 16)
+            with open(path, "rb") as src, z.open(zi, "w", force_zip64=True) as dst:
+                while True:
+                    chunk = src.read(1 << 22)
+                    if not chunk:
+                        break
+                    dst.write(chunk)
+    say("packed %s (%.1f MB)" % (out, os.path.getsize(out) / 1e6))
+    return out
+
+
 def solid_check(scene, size=(384, 216), frames=None):
     """fast Workbench pass over the film ranges (every frame) -> render/out/motion_check.mp4, frame numbers and
     camera markers stamped: motion, cut and line glitches"""
@@ -1930,6 +1956,8 @@ def main():
     ap.add_argument("--frames", default="", help="debug stills of these frames (comma list) -> out/frames/")
     ap.add_argument("--cam", default="", help="custom debug camera 'x,y,z:tx,ty,tz:lens' for --frames")
     ap.add_argument("--tag", default="check")
+    ap.add_argument("--size", default="640x360", help="size of the --frames stills, e.g. 1280x720")
+    ap.add_argument("--pack", action="store_true", help="zip the .blend and render/mac/ files -> out/grappstar_render.zip")
     ap.add_argument("--crop-test", default="", help="native 4K crops along the line, e.g. B:taut")
     ap.add_argument("--solid-check", action="store_true", help="fast Workbench pass over the film ranges")
     a = ap.parse_args(argv)
@@ -1950,7 +1978,10 @@ def main():
         cl, mom = (a.crop_test.split(":") + ["taut"])[:2]
         crop_test(scene, cl, mom, samples=a.samples)
     if a.frames:
-        render_frames(scene, [int(v) for v in a.frames.split(",")], a.samples, a.cam, tag=a.tag)
+        render_frames(scene, [int(v) for v in a.frames.split(",")], a.samples, a.cam, tag=a.tag,
+                      size=tuple(int(v) for v in a.size.split("x")))
+    if a.pack:
+        pack_zip()
     if a.solid_check:
         solid_check(scene, frames=[int(v) for v in a.frames.split(",")] if a.frames else None)
         a.frames = ""

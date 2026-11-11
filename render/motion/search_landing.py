@@ -75,8 +75,11 @@ def run_sims(inits, node_path, tag, nproc=4):
 def qualifies(r, case_sum):
     mv = [m["move"] for m in r["moves"]]
     first_tilt = r["moves"][0]["tilt"] if r["moves"] else 0.0
-    return (r["righted"] and r["anchored"] == 2 and r["held"] >= 55 and not r["blowup"] and any(m in LEG_MOVES for m in mv)
+    return (r["righted"] and r["anchored"] == 2 and r["held"] >= HELD_MIN and not r["blowup"] and any(m in LEG_MOVES for m in mv)
             and first_tilt > 60.0 and 4.4 < r["final_p"][0] < 5.6 and "align" not in [p["p"] for p in r["phases"]])
+
+
+HELD_MIN = 40       # N: v34 held 55 in loam; v35 (pods at x 50, raked back) holds 40-45 N in the sim, twice the film's 20 N tow
 
 
 def main():
@@ -101,7 +104,8 @@ def main():
         a.n = len(pool)
     for i in range(a.n):
         inp = dict(pool[i]) if pool else draw(rng)
-        inp["rail_deg"] = round(B.snap_pitch(inp["rail_deg"])[0], 6)   # a pitch the aim train really reaches
+        inp["rail_cmd"] = inp.get("rail_cmd", inp["rail_deg"])           # the aim command (make_motion PICKS rail_deg)
+        inp["rail_deg"] = round(B.snap_pitch(inp["rail_cmd"])[0], 6)    # the pitch the aim train really reaches
         c = LD.Case(geom, inp, cloud)
         cases.append((inp, c.summary()))
         inits.append(dict(id=i, init=c.sim_init(CGX, reel)))

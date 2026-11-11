@@ -1,6 +1,6 @@
 {
  "gears": {
-  "rack_rolls_on_big_gear": -1.0004,
+  "rack_rolls_on_big_gear": -1.0008,
   "expect_rack": -1.0,
   "drive_per_big_gear": -1.5385,
   "expect_drive": -1.5385,
@@ -9,46 +9,46 @@
   "ok": true
  },
  "flight": {
-  "aoa_max_deg": 12.4,
-  "total_angle_of_attack_at_handover_deg": 12.4,
-  "lateral_drift_mm": 23.7,
-  "heading_end_deg": -3.09,
+  "aoa_max_deg": 11.3,
+  "total_angle_of_attack_at_handover_deg": 11.3,
+  "lateral_drift_mm": -9.4,
+  "heading_end_deg": 1.26,
   "nose_first": true,
-  "time_s": 0.842
+  "time_s": 0.848
  },
  "impact_nose_xyz": [
-  4.668,
-  0.112,
-  0.052
+  4.843,
+  0.083,
+  0.011
  ],
  "rest_nose_xyz": [
-  5.143,
-  0.055,
-  0.021
+  5.157,
+  0.075,
+  0.037
  ],
  "drills": {
   "drill_leg_L": {
    "tip_z_mm_deploy_start_after_cut_end": [
-    24.5,
-    -41.8,
-    -40.1
+    22.3,
+    -41.9,
+    -39.1
    ],
    "into_ground": true
   },
   "drill_leg_R": {
    "tip_z_mm_deploy_start_after_cut_end": [
-    30.5,
+    8.7,
     -45.1,
-    -43.9
+    -42.6
    ],
    "into_ground": true
   }
  },
  "dart_vs_ground": {
-  "min_z_mm": -3.28,
-  "part": "nose",
-  "frame": 461,
-  "rest_min_z_mm": -0.24,
+  "min_z_mm": -2.2,
+  "part": "righting_leg",
+  "frame": 407,
+  "rest_min_z_mm": -0.31,
   "note": "sim contact is soft and its colliders are a capsule hull, cone nose and capsule pods/leg: a few mm of sink into the soil is expected; drills / motors / augers excluded once the pods are past 12 deg"
  },
  "base_moving_parts_min_z_mm": {
@@ -57,55 +57,56 @@
   "frame": 0
  },
  "free_rope_inside_base": {
-  "frames_checked": 222,
+  "frames_checked": 225,
   "hits": [],
   "n_hits": 0,
   "ok": true
  },
  "line_min_z_mm": 2.1,
  "handover": {
-  "pos_mm": 0.0008,
+  "pos_mm": 0.0006,
   "rot_deg": 0.0001,
   "v_flight": [
-   4.6883,
-   0.048,
-   -4.3819
+   4.7834,
+   -0.0214,
+   -4.4141
   ],
   "w_flight": [
-   0.1241,
-   1.9296,
-   0.0139
+   0.0249,
+   1.2811,
+   0.0386
   ],
   "w_sim": [
-   0.1241,
-   1.9296,
-   0.0139
+   0.0249,
+   1.2811,
+   0.0386
   ]
  },
  "log": [
-  "dart build /home/user/GrappStar/kedge/out34 | sim layout tail | joint map {'k_pod': 1.0, 'k_leg': 1.0, 'augers': {'L': {'axis': [-1.0, 0.0, 0.0], 'drill_in_sign': 1.0}, 'R': {'axis': [-1.0, 0.0, 0.0], 'drill_in_sign': -1.0}}}",
+  "dart build /home/user/GrappStar/kedge/out35 | sim layout front | joint map {'k_pod': 1.0, 'k_leg': 1.0, 'augers': {'L': {'axis': [1.0, 0.0, 0.0], 'drill_in_sign': -1.0}, 'R': {'axis': [1.0, 0.0, 0.0], 'drill_in_sign': 1.0}}}",
   "loading base kinematics ...",
-  "aim: wiper 1067.54 deg backward -> pitch 33.9863 in 4.39 s; cock 425 deg in 1.93 s",
-  "shot: release 59.9 ms after the wiper restarts; stroke 58.6 ms; stop flexure 18.8 mm, rebound 9.2 mm, settled 53 ms",
-  "flight {'t_flight': 0.8422, 'cg': [4.6483, 0.1153, 0.0939], 'speed': 6.417, 'path_deg': -43.06, 'body_pitch_deg': -55.2, 'heading_deg': -3.09, 'pitch_rate': -1.934, 'yaw_rate': 0.024}",
-  "sim from the flight end: righted True rightT 6.68 anchored 2 held 55 moves [('legFlip', 1.36, 174)]",
-  "handover (no blend): {'pos_mm': 0.0008, 'rot_deg': 0.0001, 'v_flight': [4.6883, 0.048, -4.3819], 'w_flight': [0.1241, 1.9296, 0.0139], 'w_sim': [0.1241, 1.9296, 0.0139]}",
+  "aim: wiper 1061.28 deg backward -> pitch 33.7113 in 4.36 s; cock 425 deg in 1.93 s",
+  "shot: release 59.9 ms after the wiper restarts; stroke 58.6 ms; stop flexure 18.9 mm, rebound 9.2 mm, settled 53 ms",
+  "flight {'t_flight': 0.8482, 'cg': [4.7595, 0.0822, 0.0872], 'speed': 6.509, 'path_deg': -42.7, 'body_pitch_deg': -53.99, 'heading_deg': 1.26, 'pitch_rate': -1.28, 'yaw_rate': 0.066}",
+  "sim from the flight end: righted True rightT 8.24 anchored 2 held 45 moves [('legFlip', 1.47, 174), ('podRoll:L', 6.49, 36)]",
+  "handover (no blend): {'pos_mm': 0.0006, 'rot_deg': 0.0001, 'v_flight': [4.7834, -0.0214, -4.4141], 'w_flight': [0.0249, 1.2811, 0.0386], 'w_sim': [0.0249, 1.2811, 0.0386]}",
   "slack at the tidy start 0.002 m -> tidy 1.5 s at 0.18 m/s",
-  "tow: capstan take-in 7.1 mm to 20.0 N",
-  "real time: fire 10.68 impact 11.61 righted 18.55 drills 20.38 anchored 30.1 | base: rail low 12.41 wrap 28.72 - 61.02 tidy 63.28 tow 69.81 end 81.31",
-  "cut: frame 732 (film 24.4 s) jumps real 24.4 -> 58.02 ( 33.6 s hidden ); film 47.69 s, 1432 frames",
-  "frames + rope done 135.5 s; max free length 4.982 m; max nodes 101",
+  "pods under the tow (deg, stop 46.75 ): [46.79, 46.79, 46.88, 47.0, 47.12, 47.24, 47.35, 47.39, 47.4, 47.41, 47.56, 47.6, 47.62, 47.63]",
+  "tow: capstan take-in 12.5 mm to 20.0 N",
+  "real time: fire 10.65 impact 11.59 righted 20.2 drills 20.9 anchored 30.66 | base: rail low 12.39 wrap 28.72 - 61.02 tidy 63.29 tow 69.82 end 81.32",
+  "cut: frame 747 (film 24.9 s) jumps real 24.9 -> 58.02 ( 33.1 s hidden ); film 48.19 s, 1447 frames",
+  "frames + rope done 141.1 s; max free length 5.088 m; max nodes 103",
   "posing base parts ...",
-  "posed 145.9 s",
-  "events: [(90, 'aim_start'), (222, 'aimed'), (237, 'cock_start'), (294, 'cocked'), (320, 'fire'), (322, 'carriage_home'), (323, 'muzzle_exit'), (348, 'impact'), (372, 'base_rail_low_start'), (389, 'righting_legFlip'), (556, 'pods_deploy_start'), (556, 'righted'), (611, 'drills_start'), (701, 'base_drum_to_neutral'), (732, 'cut'), (822, 'base_wrap_done'), (875, 'base_wrapped_park'), (890, 'tidy_start'), (892, 'reel_taut'), (949, 'reel_engage'), (1086, 'tow_start'), (1281, 'tension_hold'), (1431, 'end')] | hidden by the cut: [('base_wrap_start', np.float64(28.719)), ('anchored', np.float64(30.097))]",
-  "wrote /home/user/GrappStar/render/motion/motion.json 4.81 MB; 204 objects ( 33 static off rest )",
-  "check gears: {'rack_rolls_on_big_gear': -1.0004, 'expect_rack': -1.0, 'drive_per_big_gear': -1.5385, 'expect_drive': -1.5385, 'wiper_forward_while_cocking': True, 'carriage_back_while_cocking': True, 'ok': True}",
-  "check flight: {'aoa_max_deg': 12.4, 'total_angle_of_attack_at_handover_deg': 12.4, 'lateral_drift_mm': 23.7, 'heading_end_deg': -3.09, 'nose_first': True, 'time_s': 0.842}",
-  "check impact nose at [4.668, 0.112, 0.052] rest [5.143, 0.055, 0.021]",
-  "check drills: {'drill_leg_L': {'tip_z_mm_deploy_start_after_cut_end': [24.5, -41.8, -40.1], 'into_ground': True}, 'drill_leg_R': {'tip_z_mm_deploy_start_after_cut_end': [30.5, -45.1, -43.9], 'into_ground': True}}",
-  "check dart vs ground: {'min_z_mm': -3.28, 'part': 'nose', 'frame': 461, 'rest_min_z_mm': -0.24, 'note': 'sim contact is soft and its colliders are a capsule hull, cone nose and capsule pods/leg: a few mm of sink into the soil is expected; drills / motors / augers excluded once the pods are past 12 deg'}",
+  "posed 151.8 s",
+  "events: [(90, 'aim_start'), (221, 'aimed'), (236, 'cock_start'), (294, 'cocked'), (319, 'fire'), (321, 'carriage_home'), (322, 'muzzle_exit'), (348, 'impact'), (372, 'base_rail_low_start'), (392, 'righting_legFlip'), (542, 'righting_podRoll_L'), (606, 'pods_deploy_start'), (606, 'righted'), (627, 'drills_start'), (701, 'base_drum_to_neutral'), (747, 'cut'), (837, 'base_wrap_done'), (890, 'base_wrapped_park'), (905, 'tidy_start'), (907, 'reel_taut'), (964, 'reel_engage'), (1101, 'tow_start'), (1296, 'tension_hold'), (1446, 'end')] | hidden by the cut: [('base_wrap_start', np.float64(28.722)), ('anchored', np.float64(30.655))]",
+  "wrote /home/user/GrappStar/render/motion/motion.json 5.11 MB; 204 objects ( 33 static off rest )",
+  "check gears: {'rack_rolls_on_big_gear': -1.0008, 'expect_rack': -1.0, 'drive_per_big_gear': -1.5385, 'expect_drive': -1.5385, 'wiper_forward_while_cocking': True, 'carriage_back_while_cocking': True, 'ok': True}",
+  "check flight: {'aoa_max_deg': 11.3, 'total_angle_of_attack_at_handover_deg': 11.3, 'lateral_drift_mm': -9.4, 'heading_end_deg': 1.26, 'nose_first': True, 'time_s': 0.848}",
+  "check impact nose at [4.843, 0.083, 0.011] rest [5.157, 0.075, 0.037]",
+  "check drills: {'drill_leg_L': {'tip_z_mm_deploy_start_after_cut_end': [22.3, -41.9, -39.1], 'into_ground': True}, 'drill_leg_R': {'tip_z_mm_deploy_start_after_cut_end': [8.7, -45.1, -42.6], 'into_ground': True}}",
+  "check dart vs ground: {'min_z_mm': -2.2, 'part': 'righting_leg', 'frame': 407, 'rest_min_z_mm': -0.31, 'note': 'sim contact is soft and its colliders are a capsule hull, cone nose and capsule pods/leg: a few mm of sink into the soil is expected; drills / motors / augers excluded once the pods are past 12 deg'}",
   "check base moving parts min z: {'z': 12.44, 'part': 'drum_drum_a', 'frame': 0}",
-  "check free rope inside base parts: {'frames_checked': 222, 'hits': [], 'n_hits': 0, 'ok': True}",
+  "check free rope inside base parts: {'frames_checked': 225, 'hits': [], 'n_hits': 0, 'ok': True}",
   "check line min z mm: 2.1"
  ]
 }

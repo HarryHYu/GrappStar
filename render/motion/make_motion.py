@@ -37,7 +37,11 @@ FPS = 30
 # muzzle speed, cradle tip-off, yaw disturbance and a light cross-wind; its own bounce ends inverted, the leg alone rights
 # it (no reel tug), both drills go in and it holds 55 N. Rerun the search for a new dart build (search_landing.py).
 PICKS = {"out34": dict(rail_deg=33.987, v0=6.783, q0=-0.908, dth=0.16, r0=0.368, dpsi=3.18, wind_y=0.645, slope_deg=0.0,
-                       source="search_landing.py seed 8 run 28 (search/search_results_recheck_search_results_s8.json)")}
+                       source="search_landing.py seed 8 run 28 (search/search_results_recheck_search_results_s8.json)"),
+         # v35 (pods hinged at x 50, folding aft, drills raked back): its own bounce ends inverted, the leg flips it, one pod
+         # roll finishes it (no reel tug), both drills in, held 45 N in the sim
+         "out35": dict(rail_deg=33.712, v0=6.888, q0=-0.818, dth=1.79, r0=-0.127, dpsi=1.14, wind_y=-0.319, slope_deg=0.0,
+                       source="search_landing.py seed 11 run 118 (search/search_results_s11.json)")}
 DRILL_RPM = 45.0                  # drill motor under load on 2S (100 rpm 12 V listing)
 EA_LINE = 30000.0                 # N, 1 mm Dyneema braid (stretch under the tow)
 T_FLIGHT, T_TIDY, T_TOW_MIN = 0.3, 5.0, 5.0     # N: line tension in flight (base physics 0.25 N drag, 0.37 N peak), FIRM take-up, tow floor
@@ -235,7 +239,7 @@ def build(args):
     sm = sim.summary
     say("sim from the flight end: righted", sm["righted"], "rightT", round(sm["rightT"] or -1, 2), "anchored", sm["anchored"],
         "held", sm["held"], "moves", [(m["move"], round(m["t"], 2), round(m["tilt"])) for m in sm["moves"]])
-    if not (sm["righted"] and sm["anchored"] == 2 and sm["held"] >= 55 and any(m["move"] in SL.LEG_MOVES for m in sm["moves"])):
+    if not (sm["righted"] and sm["anchored"] == 2 and sm["held"] >= SL.HELD_MIN and any(m["move"] in SL.LEG_MOVES for m in sm["moves"])):
         raise SystemExit("the picked landing does not right with the leg, plant both drills and hold: re-run search_landing.py")
     ph_sim = dict((p["p"], p["t"]) for p in sm["phases"])
     SMAP = DM.SimMap(0.0, np.zeros(3))
@@ -514,6 +518,8 @@ def build(args):
         take = (Tn - T0n) * d / EA_LINE + (d0 - d) + (line_slack(d0, T_TIDY) - line_slack(d, max(T_TOW_MIN, Tn)))
         return math.degrees(take / r_cap) / gear_cap
     SCH.tow(t_tow, take_deg, t_tow_end)
+    th_tow = [float(np.interp(ts_of(t), tS, 0.5 * (sim.col("podL_deg") + sim.col("podR_deg")))) for t in np.linspace(t_tow, t_tow_end, 14)]
+    say("pods under the tow (deg, stop", SIM_JOB["D"]["pod"]["stopDeg"], "):", [round(x, 2) for x in th_tow])
     say("tow: capstan take-in", round(take_deg(t_tow_end) * gear_cap * math.radians(1) * r_cap * 1000, 1), "mm to",
         round(float(np.interp(ts_of(t_tow_end), tS, Tcol)), 1), "N")
     F_total = F_cut + (t_end - t_cut_to)

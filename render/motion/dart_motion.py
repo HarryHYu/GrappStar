@@ -350,14 +350,25 @@ def sim_job(out=None):
     fold = 1 if tip[0] < 0 else -1                                   # folded tip toward the nose (+1, v34) or the tail (-1, v35)
     lg = PP["righting_leg"]
     layout = "tail" if fold == 1 else "front"
+    # the sim puts each pod's mass at half its length from the pivot along the fold and the leg's 75 mm aft of its hinge:
+    # place the hull's own CG so the whole dart's CG is the real one (as the validated v34 job does: cgX 83.3)
+    tot = mass34.case(rows)
+    Mt, ct = tot["mass_g"], np.asarray(tot["cg_mm"], float)
+    mp, ml = g["deploy"]["mass_g"] / 2, g["leg"]["mass_g"]
+    mh = Mt - 2 * mp - ml
+    L = float(np.linalg.norm(tip))
+    x_pod = piv[0] - fold * L / 2
+    x_leg = float(lg["pos"][0]) + 75.0
+    cgX = (Mt * ct[0] - 2 * mp * x_pod - ml * x_leg) / mh
+    cgZ = (Mt * ct[2] - 2 * mp * piv[2] - ml * float(lg["pos"][2])) / mh
     job = {"cfg": {"axle": "rigid", "tie": True, "legLen": 3, "tieX": float(P["TIE"]["holes"][0][0]),
                    "tieY": float(P["TIE"]["holes"][0][2])},
-           "D": {"hull": {"mass": round(g["hull"]["mass_g"] / 1000, 4), "cgX": round(float(g["hull"]["cg_mm"][0]), 2)},
+           "D": {"hull": {"mass": round(mh / 1000, 4), "cgX": round(float(cgX), 2)},
                  "pod": {"mass": round(g["deploy"]["mass_g"] / 2000, 4), "pivotX": float(piv[0]), "pivotY": float(piv[2]),
                          "stopDeg": float(P["DEPLOY_DEG"]), "lat": abs(float(piv[1])), "len": round(float(np.linalg.norm(tip)), 2)},
                  "leg": {"mass": round(g["leg"]["mass_g"] / 1000, 4), "hingeX": float(lg["pos"][0]), "hingeY": float(lg["pos"][2]),
                          "stopDeg": float(P.get("LEG_DEG", 178.0)), "len": 113, "padW": 37, "pad": 3.5}},
-           "LAYOUTS": {layout: {"pivotX": float(piv[0]), "fold": fold}}, "cgUp": round(float(g["hull"]["cg_mm"][2]), 2),
+           "LAYOUTS": {layout: {"pivotX": float(piv[0]), "fold": fold}}, "cgUp": round(float(cgZ), 2),
            "soil": "loam", "layout": layout}
     return job
 

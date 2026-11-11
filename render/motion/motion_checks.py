@@ -86,15 +86,17 @@ def run(ctx, say):
     say("check impact nose at", res["impact_nose_xyz"], "rest", res["rest_nose_xyz"])
     # ---- drills: tips below the ground, deploy moves the tips down
     PP = {p["name"]: p for p in J["parts"]}
-    tip_local = np.array([-J["P"]["POD_TIP"], 0.0, 0.0]) / 1000.0
+    import dart_motion as DM
+    JMp = DM.joint_map()
     out = {}
     for nm in ("drill_leg_L", "drill_leg_R"):
         piv = np.array(PP[nm]["pos"]) / 1000.0
+        tip_local = np.array(JMp["augers"][nm[-1]]["axis"]) * J["P"]["POD_TIP"] / 1000.0
         zs = []
         for f in (ev["pods_deploy_start"], ctx["cut_f"], len(frames) - 1):
             p, R = frames[f]["dart"][1], frames[f]["dart"][2]
             deg = ctx["pod"][f]
-            tip = p + R @ (piv + _RotY(math.radians(-deg)) @ tip_local)
+            tip = p + R @ (piv + _RotY(math.radians(PP[nm].get("sgn", 1) * deg)) @ tip_local)
             zs.append(round(float(tip[2]) * 1000, 1))
         out[nm] = dict(tip_z_mm_deploy_start_after_cut_end=zs, into_ground=bool(zs[1] < -20 and zs[2] < -20))
     res["drills"] = out

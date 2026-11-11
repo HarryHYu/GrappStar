@@ -1144,9 +1144,9 @@ def make_shots(mo, entry=None):
     focB = midB + np.array([0.0, 0.0, 0.15])
     i_ap = f_fire + int(np.argmax(cg[f_fire:f_imp + 1, 2]))
     f_exit = E("muzzle_exit", f_fire + 3)
-    stA = dict(aim=f_aim + (f_cock - f_aim) * 3 // 4, cock=(f_cock + f_fire) // 2, launch=f_exit + 1,
-               flight=i_ap, impact=f_imp + 4, righting=(f_flip + f_right) // 2, drills=min(f_drill + 60, f_cut - 2))
-    stB = dict(after_cut=f_cut + 5, taut=min(f_taut + 15, f_end), tow=min(f_tow + 40, f_end), end=f_end - 3)
+    stA = dict(launch=f_exit + 1, flight=i_ap, landed=f_imp + 40, righting=(f_flip + f_right) // 2,
+               drills=min(f_drill + 60, f_cut - 2))
+    stB = dict(taut=min(f_taut + 15, f_end), tow=min(f_tow + 40, f_end))
     stA = {k: int(np.clip(v, 0, f_cut - 1)) for k, v in stA.items()}
     stB = {k: int(np.clip(v, f_cut, f_end)) for k, v in stB.items()}
     return [Shot("A_wide", 0, f_cut - 1, posA, tgtA, lensA, focA, CAM_A["fstop"], stA),
@@ -1492,12 +1492,72 @@ def build(args, report):
     env.set_render(scene, "EEVEE", "final" if args.quality in ("final", "hero") else "preview", motion_blur=True)
     scene.render.motion_blur_shutter = 0.5                 # 180 deg shutter ...
     scene.render.motion_blur_position = "START"            # ... opening at the frame: nothing blurs across the cut
-    scene.render.resolution_x, scene.render.resolution_y = 1920, 1080     # final default (mac preset uhd: 4K)
+    scene.render.resolution_x, scene.render.resolution_y = 1280, 720      # deadline default (mac presets: 720p)
+    fast_eevee(scene)
     camera_look(scene, shots)
+    ranges = trim_ranges(mo)
+    scene["grappstar_ranges"] = ",".join("%d-%d" % r for r in ranges)
+    scene.frame_start, scene.frame_end = ranges[0][0], ranges[-1][1]
+    report["ranges"] = ranges
+    report["film_frames"] = sum(b - a + 1 for a, b in ranges)
+    say("film ranges %s (%d frames, %.1f s)" % (scene["grappstar_ranges"], report["film_frames"],
+                                                report["film_frames"] / mo.fps))
     scene.frame_set(0)
     scene["grappstar_build"] = json.dumps(dict(quality=args.quality, motion_frames=mo.nf,
                                                built=time.strftime("%Y-%m-%d %H:%M")))
     return scene, mo, shots
+
+
+TRIM = dict(before_fire=45, before_taut=12, hold_after=60, tow_after=90)   # frames
+
+
+def trim_ranges(mo):
+    """the film (about 25 s) as frame ranges of the .blend timeline (scene["grappstar_ranges"]; render/mac/preset.py
+    renders them back to back into one MP4): cam:A from 1.5 s before the fire through the flight, landing,
+    righting and the drills going in to the cut; cam:B from just before the line starts to tighten, through taut
+    and the tow, ending 2 s into the tension hold or 3 s into the tow, whichever comes first"""
+    E = mo.e
+    f_end = mo.nf - 1
+    a0 = max(0, E("fire", 0) - TRIM["before_fire"])
+    cut = mo.cut or E("cut", None)
+    if cut is None:
+        return [(a0, f_end)]
+    taut = min(E("tidy_start", f_end), E("reel_taut", f_end))
+    b0 = max(cut, taut - TRIM["before_taut"])
+    b1 = min(f_end, E("tension_hold", f_end) + TRIM["hold_after"], E("tow_start", f_end) + TRIM["tow_after"])
+    return [(a0, cut - 1), (b0, b1)]
+
+
+def fast_eevee(scene):
+    """EEVEE tuned for a few seconds a frame on an M3 at 720p: 20 samples, screen-space tracing at half resolution,
+    moderate soft shadows, 1 motion blur step, no volumetrics; the grass thinned a little (Density 0.8)"""
+    e = scene.eevee
+    for k, v in (("taa_render_samples", 20), ("use_raytracing", True), ("ray_tracing_method", "SCREEN"),
+                 ("shadow_ray_count", 1), ("shadow_step_count", 4), ("shadow_resolution_scale", 0.5),
+                 ("use_shadows", True), ("motion_blur_steps", 1), ("use_volumetric_shadows", False),
+                 ("volumetric_samples", 16), ("fast_gi_resolution", "4"), ("fast_gi_step_count", 4),
+                 ("fast_gi_ray_count", 1)):
+        try:
+            setattr(e, k, v)
+        except Exception:
+            pass
+    opt = getattr(e, "ray_tracing_options", None)
+    for k, v in (("resolution_scale", "2"), ("screen_trace_quality", 0.25), ("use_denoise", True)):
+        try:
+            setattr(opt, k, v)
+        except Exception:
+            pass
+    g = bpy.data.objects.get("env:grass")
+    if g is not None:
+        for md in g.modifiers:
+            if md.type == "NODES":
+                try:
+                    gn_input(md, "Density", GRASS_DENSITY_DEFAULT)
+                except Exception:
+                    pass
+
+
+GRASS_DENSITY_DEFAULT = 0.8
 
 
 def save(scene, report):
@@ -1729,6 +1789,48 @@ def motion_check(scene, step=1, density=0.5, samples=6, engine="CYCLES", size=(4
     encode_motion_check(d, step)
 
 
+def solid_check(scene, size=(480, 270)):
+    """fast Workbench pass over the film ranges (every frame) -> render/out/motion_check.mp4, frame numbers and
+    camera markers stamped: motion, cut and line glitches"""
+    d = os.path.join(FRAMES_DIR, "solid")
+    os.makedirs(d, exist_ok=True)
+    for ob in scene.objects:                   # the instanced grass / litter are not what this pass checks
+        if ob.name.startswith("env:") and any(m.type == "NODES" for m in ob.modifiers):
+            ob.hide_render = True
+    r = scene.render
+    r.engine = "BLENDER_WORKBENCH"
+    sh = scene.display.shading
+    for k, v in (("light", "STUDIO"), ("color_type", "MATERIAL"), ("show_shadows", True), ("show_cavity", False)):
+        try:
+            setattr(sh, k, v)
+        except Exception:
+            pass
+    scene.display.render_aa = "8"
+    r.use_compositing = False
+    r.resolution_x, r.resolution_y, r.resolution_percentage = size[0], size[1], 100
+    r.use_motion_blur = False
+    r.use_stamp = True
+    for k in ("use_stamp_date", "use_stamp_time", "use_stamp_render_time", "use_stamp_memory", "use_stamp_hostname",
+              "use_stamp_lens", "use_stamp_scene", "use_stamp_filename", "use_stamp_frame_range", "use_stamp_camera",
+              "use_stamp_sequencer_strip", "use_stamp_note"):
+        if hasattr(r, k):
+            setattr(r, k, False)
+    r.use_stamp_frame, r.use_stamp_marker, r.stamp_font_size = True, True, 11
+    if hasattr(r.image_settings, "media_type"):
+        r.image_settings.media_type = "IMAGE"
+    r.image_settings.file_format = "JPEG"
+    r.use_overwrite, r.use_placeholder = False, True
+    r.filepath = os.path.join(d, "f_")
+    ranges = [tuple(int(x) for x in rr.split("-")) for rr in scene.get("grappstar_ranges", "%d-%d" % (
+        scene.frame_start, scene.frame_end)).split(",")]
+    t = time.time()
+    for a, b in ranges:
+        scene.frame_start, scene.frame_end = a, b
+        bpy.ops.render.render(animation=True)
+    say("solid check frames in %.0fs" % (time.time() - t))
+    encode_motion_check(d, 1)
+
+
 def encode_motion_check(d, step=2):
     out = os.path.join(OUT, "motion_check.mp4")
     lst = os.path.join(d, "list.txt")
@@ -1758,6 +1860,7 @@ def main():
     ap.add_argument("--cam", default="", help="custom debug camera 'x,y,z:tx,ty,tz:lens' for --frames")
     ap.add_argument("--tag", default="check")
     ap.add_argument("--crop-test", default="", help="native 4K crops along the line, e.g. B:taut")
+    ap.add_argument("--solid-check", action="store_true", help="fast Workbench pass over the film ranges")
     a = ap.parse_args(argv)
     report = {}
     if a.check_only:
@@ -1777,6 +1880,8 @@ def main():
         crop_test(scene, cl, mom, samples=a.samples)
     if a.frames:
         render_frames(scene, [int(v) for v in a.frames.split(",")], a.samples, a.cam, tag=a.tag)
+    if a.solid_check:
+        solid_check(scene)
     if a.motion_check:
         motion_check(scene, step=a.mc_step, engine=a.mc_engine)
     say("done")

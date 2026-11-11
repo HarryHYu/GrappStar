@@ -1485,7 +1485,7 @@ def contact_sheet():
     say("contact sheet", os.path.join(OUT, "shots_sheet.png"), "ok" if r.returncode == 0 else r.stderr[-300:])
 
 
-def motion_check(scene, step=2, density=0.5, samples=8, engine="CYCLES"):
+def motion_check(scene, step=1, density=0.5, samples=6, engine="CYCLES", size=(480, 270)):
     import env
     d = os.path.join(FRAMES_DIR, "mc")
     os.makedirs(d, exist_ok=True)
@@ -1497,7 +1497,8 @@ def motion_check(scene, step=2, density=0.5, samples=8, engine="CYCLES"):
             pass
     env.set_render(scene, engine, "preview", motion_blur=True, samples=samples)
     r = scene.render
-    r.resolution_x, r.resolution_y, r.resolution_percentage = 320, 180, 100
+    r.resolution_x, r.resolution_y, r.resolution_percentage = size[0], size[1], 100
+    r.motion_blur_shutter = 0.5
     if engine == "CYCLES":
         scene.cycles.device = "CPU"
         scene.cycles.samples = samples
@@ -1509,7 +1510,7 @@ def motion_check(scene, step=2, density=0.5, samples=8, engine="CYCLES"):
             setattr(r, k, False)
     r.use_stamp_frame = True
     r.use_stamp_marker = True
-    r.stamp_font_size = 9
+    r.stamp_font_size = 11
     r.image_settings.file_format = "JPEG"
     r.image_settings.quality = 88
     r.use_overwrite = False
@@ -1545,7 +1546,7 @@ def main():
     ap.add_argument("--samples", type=int, default=48)
     ap.add_argument("--motion-check", action="store_true")
     ap.add_argument("--mc-engine", default="CYCLES", choices=["EEVEE", "CYCLES"])
-    ap.add_argument("--mc-step", type=int, default=2)
+    ap.add_argument("--mc-step", type=int, default=1, help="every Nth frame (real time: the shot spans 2 frames)")
     ap.add_argument("--check-only", action="store_true", help="load the saved .blend instead of building")
     ap.add_argument("--frames", default="", help="debug stills of these frames (comma list) -> out/frames/")
     ap.add_argument("--cam", default="", help="custom debug camera 'x,y,z:tx,ty,tz:lens' for --frames")

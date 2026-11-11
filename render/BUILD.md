@@ -10,38 +10,39 @@ auto-run scripts. Everything that moves is keyframes, geometry nodes or constrai
     render/.venv/bin/python render/build.py                    # final quality, saves the .blend (about 1 min)
     render/.venv/bin/python render/build.py --quality preview  # lighter grass (draft | preview | final | hero)
     render/.venv/bin/python render/build.py --no-save          # build only (e.g. with --shots)
-    render/.venv/bin/python render/build.py --shots all        # + Cycles CPU 640x360 still per shot -> out/shot_NN_name.png
-                                                               #   and out/shots_sheet.png (--samples 48, --still 4:560)
-    render/.venv/bin/python render/build.py --check-only --motion-check   # 320x180 EEVEE preview of every 2nd frame
-                                                               #   of the saved .blend -> out/motion_check.mp4
+    render/.venv/bin/python render/build.py --shots all        # + Cycles CPU 960x540 stills at each camera's key
+                                                               #   moments -> out/shot_A1_aim.png .. shot_B4_end.png
+                                                               #   and out/shots_sheet.png (--shots A,B / A3_launch)
+    render/.venv/bin/python render/build.py --check-only --motion-check   # 480x270 Cycles preview of every frame of
+                                                               #   the saved .blend -> out/motion_check.mp4
     render/.venv/bin/python render/build.py --no-save --frames 540,560 [--cam "x,y,z:tx,ty,tz:lens"]
                                                                # debug stills -> out/frames/check_FFFF.png
 
 A rerun always picks up the latest models.py and motion.json (frame count, events, objects, joints and line are
-all read at run time; shot boundaries follow the motion.json events; joint objects resolve through models.py
+all read at run time; the camera cut and the stills follow the motion.json events; joint objects resolve through models.py
 DART_JOINTS / DART_JOINT_ALIASES; the augers, their pod hinges, the dart length and CG station are taken from
 motion.json joints, the meshes and "dart"), so a revised dart (other pod hinges, other drill directions) drops in
 with a rerun as long as models.py and motion.json use the same object names. `out/build_report.json` lists what was keyed,
-the shot frame ranges and the .blend size. Motion-check frames are cached in `out/frames/mc/` (gitignored, resumable:
+the cameras (position, lens, frames, stills) and the .blend size. Motion-check frames are cached in `out/frames/mc/` (gitignored, resumable:
 delete the folder after a motion change).
 
 ## What is in the scene
 
 | Collection | Content |
 |---|---|
-| ENV | env.py paddock: terrain, GN grass (`env:grass`), fences, gate, logs, bale, trough, HDRI world, sun |
-| BASE, DART, ELEC | models.py: D50 base on the plywood board, KEDGE v34 dart (`dart:root` + joint objects), Jetson kit |
+| ENV | env.py paddock: terrain, GN grass (`env:grass`), fencing, trees, props, sky, sun, cockatoos (whatever env.py builds) |
+| BASE, DART, ELEC | models.py: D50 base on the plywood board, KEDGE dart (`dart:root` + joint objects; v35 once models.py switches), Jetson kit |
 | LINE | `line:tether` (1 mm Dyneema braid, models.mat_rope) and `line:wraps` (the capstan turns) |
 | FX | soil crumbs and heaps (`fx:soil_crumbs`), grass press empties (`fx:press_*`) |
-| CAMERAS | `cam:01_establishing` .. `cam:11_end_wide`, switched by timeline markers bound to them; `ev:*` markers mark the motion.json events |
+| CAMERAS | `cam:A` (wide) and `cam:B` (the line), switched by the timeline marker bound to each; `ev:*` markers mark the motion.json events |
 
 **Motion.** Every object in motion.json "objects" is keyed from its world transform, converted to its parent's
 frame (base parts sit under `base:root` = BASE_TO_WORLD), location + quaternion, LINEAR, with bulk keyframing
 (`keyframe_points.add` + `foreach_set`); one-key objects are just posed. Dart joints (righting leg, both pods, both
 augers) are axis-angle keys on the joint objects (angle only, so the 7 auger turns interpolate exactly). The two
 launch springs are restretched per key with models.py `set_spring_pins()` (geometry-nodes coil length keyed).
-The base's own tether stand-ins `base:launch_line_*` are hidden. Keys are dense where the motion is fast (the
-59 ms shot is keyed per film frame at 20x slow motion), so motion blur samples sub-frames correctly.
+The base's own tether stand-ins `base:launch_line_*` are hidden. Keys are linear and as dense as motion.json
+gives them, so the 180 deg motion blur samples sub-frames correctly (in real time the 59 ms shot spans 2 frames).
 
 **Tether.** motion.json "line" (48 points per key: 12 on the base path, 36 free) is resampled (the free part 3x,
 through the same points), led over the muzzle lip roller where motion.json lets the slack line fall straight from
@@ -59,7 +60,8 @@ grass), and the dart pressing the grass: `fx:press_0..4` ride along the dart's b
 it into flat mats (pushed a little outward) whenever it is within a few cm of the ground; `fx:press_impact` and
 `fx:press_lie` keep the grass partly flattened where it hit and lay.
 A 5 cm disc under the rest position is grass-free (the pressed clumps around it hide the edge); the grass is
-trampled short round both drill cuts.
+trampled short round both drill cuts. If env.py's grass tree changes shape, build.py skips these extras with a
+warning (build_report.json "grass_mods_error") instead of failing.
 
 **Soil.** `fx:soil_crumbs` is a point cloud whose geometry nodes compute each crumb's ballistic path from its
 start time, velocity and gravity (in film frames, so the impact burst plays at the 6x slow motion) and instance
@@ -67,32 +69,38 @@ small crumb meshes (FX_SRC): a burst at the impact, crumbs thrown out of both dr
 in, and soil heaped along each drill's cut (the auger crosses the surface along a short track while its pod swings
 down) that grows in as the cut passes. No popping: every crumb scales in over a few frames.
 
-## Cameras and shots (30 fps; frames from the current motion.json)
+## Cameras (SPEC v2: locked-off tripods, real time, one cut)
 
-| Shot | Camera | Frames | What | Timing from motion.json events |
-|---|---|---|---|---|
-| 01 | cam:01_establishing | 0-119 | wide, slow push in over the paddock, base right, downrange left | start .. aim_start |
-| 02 | cam:02_aim | 120-284 | 3/4 close-up from +y: crank-rocker lifts the rail 6 -> 34 deg | aim_start .. cock_start |
-| 03 | cam:03_cock | 285-494 | gear close-up craning up over the rail: wiper turns, big gear draws the carriage back, springs stretch | cock_start .. fire - 18 |
-| 04 | cam:04_fire | 495-599 | side view, pans with the dart off the rail at 20x slow motion, line paying out | fire - 18 .. muzzle_exit + 34 |
-| 05 | cam:05_flight | 600-702 | drone-like follow behind and beside the dart, line trailing back to the base | .. impact - 12 |
-| 06 | cam:06_impact | 703-863 | low in the grass at the landing patch: impact (6x slow motion), bounce, comes to rest inverted | .. legFlip - 8 |
-| 07 | cam:07_righting | 864-1044 | medium shot from above: the leg flips the dart upright | .. max(righted + 6, pods deploy - 25) |
-| 08 | cam:08_drilling | 1045-1239 | macro on the right pod: pod swings down, auger screws in, soil crumbs and heaps | .. drills start + 150 |
-| 09 | cam:09_anchoring | 1240-1395 | 3/4 front view of the dart: both drills going in until anchored | .. anchored + 10 |
-| 10 | cam:10_reel_taut | 1396-1642 | behind the base: capstan and spool, then pulls back to look down the line as it lifts taut and tows | .. tension_hold - 5 |
-| 11 | cam:11_end_wide | 1643-1723 | wide crane up and back: base, taut line, dart in the paddock | .. end |
+| Camera | Frames | Placement | Shows |
+|---|---|---|---|
+| cam:A | 0 .. cut - 1 | wide 3/4 side from the +y side, behind the base's side, 9.5 m from the base-landing midpoint, 1.5 m high | aim, cock, fire, flight, landing, righting, pods and drills starting |
+| cam:B | cut .. end | side-on to the line, a little oblique: abreast of 1 m down the line, 2.7 m off it, 1.2 m high | reel winding, the line lifting taut and holding |
 
-All action reads right to left (cameras on the +y side of the launch line). Camera moves are eased (smootherstep)
-and keyed every frame; DOF focus distance is keyed on the action (dart CG, gears, drill entry); cuts only at the
-markers. Motion blur on (shutter 0.5 frame).
+The cut is motion.json's `cut` event (fallback: `tidy_start`). Neither camera moves or zooms: build.py places
+each one by these few parameters (CAM_A, CAM_B at the top of the camera section) and FITS its aim and focal length
+to the action from motion.json (base board, the dart's flight arc and rest spot for A; the base, the line at its
+last key and the dart for B), so a new dart, landing spot or timing reframes itself on a rerun (with the current
+data: A about 50 mm, B about 17 mm). DOF is real (f/5.6, focus on the action's middle: everything that matters is
+sharp at these distances). TRIPOD_SHAKE adds a sub-pixel F-curve noise to the camera rotation (a tripod in a
+breeze; set 0 to remove).
+
+**Camera look.** AgX (env.set_render), 180 deg shutter motion blur (shutter 0.5 frame), and the compositor node
+group `GS_camera_look`: mild barrel distortion with a touch of lateral chromatic aberration, a soft vignette and a
+light per-frame film grain (LOOK at the top of the camera section). The .blend is set to 3840x2160 EEVEE.
+
+**Key-moment stills** (`--shots`): cam:A aim, cock, launch, flight apex, impact, righting, drills; cam:B after the
+cut, taut, tow, end; frames are stored on the cameras (custom property `stills`) and printed on the contact sheet.
+
+**Cockatoos.** If env.py has `add_cockatoos(scene, fire_frame)`, build.py calls it with the motion.json fire frame.
 
 ## Render on the Mac
 
 Copy `render/out/grappstar_mission.blend` and `render/mac/` (`render_mac.command`, `preset.py`) into
 `~/Desktop/grappstar_render/` and double-click `render_mac.command` (details in render/mac/README_MAC.md): EEVEE
-1920x1080 PNG frames, resumable, then an MP4. Quick test: `bash render_mac.command preview eevee 700 760`. Cycles
-hero stills: `bash render_mac.command hero cycles 560 560`. Speed knobs in the .blend: `env:grass` > Modifiers >
+3840x2160 PNG frames (preset uhd, the default), resumable, then an MP4. `bash render_mac.command final` renders
+1920x1080. Quick test: `bash render_mac.command preview eevee 500 560`. Cycles hero stills:
+`bash render_mac.command hero cycles 520 520`. Rough time per frame on an M3 16 GB: preview 3-6 s, final 8-15 s,
+uhd 25-45 s, plus a few minutes of shader compiling on the first frame. Speed knobs in the .blend: `env:grass` > Modifiers >
 scatter > Density (1.0 full, 0.5 half the clumps), Mow; render samples in preset.py.
 
 ## Open points
@@ -104,10 +112,8 @@ scatter > Density (1.0 full, 0.5 half the clumps), Mow; render samples in preset
 - The dart's tumble in the sim sinks it up to 1.7 mm into the terrain (hidden by the grass); at rest 0.1 mm.
 - Grass has no collision: pressed clumps under the dart are flattened, but a blade from an unpressed clump can
   still cross the dart's edge in a close-up.
-- The launch springs are keyed and stretch, but the rail guards hide most of them from the shot 03 camera.
-- The 1 mm line is sub-pixel in the wide shots (realistic); it reads in shots 04 to 09 and the capstan close-up
-  of shot 10; down the line in shot 10 the dart and the line are small (a longer lens there would help).
+- The 1 mm line is sub-pixel in cam:A (realistic); cam:B is placed so it is about 1 px wide at 4K near the base.
 - EEVEE in software here takes about 14 s per 320x180 frame (and minutes for the first shader compile), so the
-  motion check is Cycles 8 spp, grass Density 0.5, every 2nd frame. On the Mac the first EEVEE frame compiles
-  shaders (a few minutes), then it is fast.
+  motion check is Cycles 6 spp, 480x270, grass Density 0.5, every frame (the real-time shot spans 2 frames).
+  On the Mac the first EEVEE frame compiles shaders (a few minutes), then it is fast.
 - The .blend is about 150 MB (packed textures 110 MB), so it is not committed: rebuild it with build.py.

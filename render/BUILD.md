@@ -105,7 +105,8 @@ scatter > Density (1.0 full, 0.5 half the clumps), Mow; render samples in preset
 - Grass has no collision: pressed clumps under the dart are flattened, but a blade from an unpressed clump can
   still cross the dart's edge in a close-up.
 - The launch springs are keyed and stretch, but the rail guards hide most of them from the shot 03 camera.
-- The 1 mm line is sub-pixel in the wide shots (realistic); it reads in shots 04 to 10.
+- The 1 mm line is sub-pixel in the wide shots (realistic); it reads in shots 04 to 09 and the capstan close-up
+  of shot 10; down the line in shot 10 the dart and the line are small (a longer lens there would help).
 - EEVEE in software here takes about 14 s per 320x180 frame (and minutes for the first shader compile), so the
   motion check is Cycles 8 spp, grass Density 0.5, every 2nd frame. On the Mac the first EEVEE frame compiles
   shaders (a few minutes), then it is fast.

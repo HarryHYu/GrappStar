@@ -33,6 +33,23 @@ r.use_motion_blur = True
 r.motion_blur_shutter = 0.5                                   # 180 deg shutter (opens at the frame: see the .blend)
 r.use_compositing = True                                      # the camera look
 
+# Harry: the grass must stay still. No drifting cloud shadows, no wind sway (grass and gum leaves).
+_cs = bpy.data.objects.get("env:cloud_shadows")
+if _cs:
+    _cs.hide_render = True
+    _cs.hide_viewport = True
+_nw = 0
+for _ng in bpy.data.node_groups:
+    if not _ng.name.startswith("env:"):
+        continue
+    for _n in _ng.nodes:
+        if _n.bl_idname == "ShaderNodeMapRange" and abs(_n.inputs["From Min"].default_value - 0.3) < 1e-6 \
+                and abs(_n.inputs["From Max"].default_value - 0.7) < 1e-6:
+            _n.inputs["To Min"].default_value = 0.0
+            _n.inputs["To Max"].default_value = 0.0
+            _nw += 1
+print("GrappStar: cloud shadows off:", bool(_cs), "| wind nodes zeroed:", _nw)
+
 if a.start is not None or a.end is not None:
     ranges = [(a.start if a.start is not None else sc.frame_start, a.end if a.end is not None else sc.frame_end)]
 else:
@@ -57,8 +74,9 @@ if a.engine == "cycles":
 else:
     r.engine = "BLENDER_EEVEE"
     ee = sc.eevee
-    ee.taa_render_samples = {"preview": 12, "hd720": 10, "final": 32, "uhd": 48, "hero": 128}[a.preset]
+    ee.taa_render_samples = {"preview": 12, "hd720": 16, "final": 32, "uhd": 48, "hero": 128}[a.preset]
 
+a.out = a.out.rstrip("/") + "_v2/"                             # v2: still grass, rendered fresh
 os.makedirs(a.out, exist_ok=True)
 for _f in os.listdir(a.out):                                  # empty placeholders from a stopped run: render them again
     if _f.startswith("f_") and _f.endswith(".png") and os.path.getsize(os.path.join(a.out, _f)) == 0:
